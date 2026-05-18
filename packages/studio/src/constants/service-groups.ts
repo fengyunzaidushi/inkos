@@ -16,6 +16,10 @@ export const GROUP_LABELS: Record<EndpointGroup, string> = {
   codingPlan: "CodingPlan",
 };
 
+export const GROUP_DESCRIPTIONS: Partial<Record<EndpointGroup, string>> = {
+  aggregator: "聚合国内外主流模型，适合用一个 API Key 接入多模型的场景。",
+};
+
 export const GROUP_SHORT_LABELS: Record<EndpointGroup, string> = {
   overseas: "海外",
   china: "国产",

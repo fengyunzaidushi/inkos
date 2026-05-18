@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, Eye, EyeOff, Loader2, Plus, Search, X } from "lucide-react";
-import { GROUP_LABELS, GROUP_ORDER, GROUP_SHORT_LABELS } from "../constants/service-groups";
+import { GROUP_DESCRIPTIONS, GROUP_LABELS, GROUP_ORDER, GROUP_SHORT_LABELS } from "../constants/service-groups";
 import { fetchJson } from "../hooks/use-api";
 import { useServiceStore } from "../store/service";
 import type { EndpointGroup, ServiceInfo } from "../store/service";
@@ -404,9 +404,16 @@ export function ServiceListPage({ nav }: { nav: Nav }) {
         if (!list || list.length === 0) return null;
         return (
           <section key={group} className="space-y-3">
-            <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
-              {GROUP_LABELS[group]}
-            </h2>
+            <div className="space-y-1">
+              <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
+                {GROUP_LABELS[group]}
+              </h2>
+              {GROUP_DESCRIPTIONS[group] && (
+                <p className="text-xs text-muted-foreground/60">
+                  {GROUP_DESCRIPTIONS[group]}
+                </p>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-3">
               {list.map((svc) => (
                 <ServiceCard

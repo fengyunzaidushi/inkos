@@ -109,7 +109,7 @@ inkos config show-models        # 現在のルーティングを表示
 
 明示的なオーバーライドがないエージェントはグローバルモデルにフォールバックします。
 
-集約 API を使う場合、Studio では [kkaiapi](https://en.kkaiapi.com/)（[API docs](https://en.kkaiapi.com/docs) / [models and pricing](https://en.kkaiapi.com/models)）と OpenRouter を任意のプロバイダーとして選択できます。
+集約 API を使う場合、Studio では [kkaiapi](https://en.kkaiapi.com/)（国内外の主要モデルをまとめて扱える OpenAI-compatible 入口、[API docs](https://en.kkaiapi.com/docs) / [models and pricing](https://en.kkaiapi.com/models)）と OpenRouter を任意のプロバイダーとして選択できます。
 
 ### v1.2 アップデート
 
