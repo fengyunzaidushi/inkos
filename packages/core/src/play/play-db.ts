@@ -245,6 +245,18 @@ export class PlayDB {
     return row ? PlayEventSchema.parse(row) : null;
   }
 
+  transaction<T>(fn: () => T): T {
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      const result = fn();
+      this.db.exec("COMMIT");
+      return result;
+    } catch (error) {
+      this.db.exec("ROLLBACK");
+      throw error;
+    }
+  }
+
   close(): void {
     this.db.close();
   }

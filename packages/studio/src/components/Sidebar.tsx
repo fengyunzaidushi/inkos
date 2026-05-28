@@ -25,6 +25,7 @@ import {
   Terminal,
   Plus,
   MessageSquare,
+  Gamepad2,
   ScrollText,
   Boxes,
   Wand2,
@@ -50,6 +51,7 @@ interface BookSummary {
 interface Nav {
   toDashboard: () => void;
   toChat: () => void;
+  toPlay: () => void;
   toBook: (id: string) => void;
   toBookCreate: () => void;
   toServices: () => void;
@@ -487,6 +489,12 @@ export function Sidebar({ nav, activePage, sse, t }: {
                 </div>
               )}
             </div>
+            <SidebarItem
+              label="InkOS Play"
+              icon={<Gamepad2 size={16} />}
+              active={activePage === "play"}
+              onClick={nav.toPlay}
+            />
             <SidebarItem
               label={t("nav.style")}
               icon={<Wand2 size={16} />}

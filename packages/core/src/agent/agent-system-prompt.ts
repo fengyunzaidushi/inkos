@@ -27,6 +27,8 @@ export function buildAgentSystemPrompt(bookId: string | null, language: string):
    - instruction 中包含收集到的所有信息（题材、世界观、主角、冲突等）
    - architect 会生成完整的 foundation（世界观设定、卷纲规划、叙事规则等）
 
+4. **直接回答** — 用户只是提问、闲聊、了解能力或讨论方案时，直接用文字回答；不要调用 sub_agent、short_fiction_run 或 generate_cover。只有用户明确要创建长篇、生成短篇、生成封面或执行具体生产动作时，才调用工具。
+
 ## 对话风格
 
 - 每次只问一个问题，不要一次问太多
@@ -64,6 +66,8 @@ export function buildAgentSystemPrompt(bookId: string | null, language: string):
    - Pass structured params: genre, platform, language, targetChapters, chapterWordCount
    - Include all collected info in the instruction
    - The architect will generate the complete foundation
+
+4. **Answer directly** — If the user is only asking a question, chatting, exploring capabilities, or discussing options, answer directly in text; do not call sub_agent, short_fiction_run, or generate_cover. Use tools only when the user explicitly asks to create a long-form book, generate a short fiction project, generate a cover, or run a concrete production action.
 
 ## Style
 

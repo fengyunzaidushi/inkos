@@ -42,6 +42,15 @@ describe("buildAgentSystemPrompt", () => {
       expect(enPrompt).toContain("coverPrompt");
     });
 
+    it("no-book prompt has a direct-chat exit instead of forcing creation tools", () => {
+      const zhPrompt = buildAgentSystemPrompt(null, "zh");
+      const enPrompt = buildAgentSystemPrompt(null, "en");
+      expect(zhPrompt).toContain("用户只是提问、闲聊、了解能力或讨论方案时，直接用文字回答");
+      expect(zhPrompt).toContain("不要调用 sub_agent、short_fiction_run 或 generate_cover");
+      expect(enPrompt).toContain("If the user is only asking a question, chatting, exploring capabilities, or discussing options, answer directly");
+      expect(enPrompt).toContain("do not call sub_agent, short_fiction_run, or generate_cover");
+    });
+
     it("English prompt forbids emoji", () => {
       const prompt = buildAgentSystemPrompt(null, "en");
       expect(prompt).toContain("Do NOT use emoji");

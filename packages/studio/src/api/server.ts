@@ -38,6 +38,7 @@ import {
   buildExportArtifact,
   GLOBAL_ENV_PATH,
   COVER_PROVIDER_PRESETS,
+  PlayRunner,
   Scheduler,
   coverSecretKey,
   resolveCoverProviderPreset,
@@ -262,6 +263,18 @@ function parseReplacementInstruction(instruction: string): { oldText: string; ne
   return null;
 }
 
+function isExplicitExternalChatEditInstruction(instruction: string): boolean {
+  const trimmed = instruction.trim();
+  if (!trimmed) return false;
+  if (/[?？]\s*$/.test(trimmed)) return false;
+  if (/^(?:请问|能否|能不能|可以|可不可以|是否|是不是|怎么|怎样|为什么|如果|假如|要不要|建议|讨论)\b/u.test(trimmed)) {
+    return false;
+  }
+
+  const imperative = trimmed.replace(/^(?:请|麻烦|帮我|直接|现在)\s*/u, "");
+  return /^(?:第\s*\d{1,4}\s*章\s*)?(?:把|将)\s*/u.test(imperative);
+}
+
 function parseChapterNumberForEdit(instruction: string): number | null {
   const match = instruction.match(/第\s*(\d{1,4})\s*章/);
   if (!match?.[1]) return null;
@@ -366,6 +379,7 @@ async function tryHandleExternalChatEdit(params: {
 }): Promise<ExternalChatEditResult | null> {
   const replacement = parseReplacementInstruction(params.instruction);
   if (!replacement) return null;
+  if (!isExplicitExternalChatEditInstruction(params.instruction)) return null;
 
   const explicitPath = parseExplicitEditPath(params.instruction);
   if (explicitPath) {
@@ -2263,6 +2277,43 @@ export function createStudioServer(initialConfig: ProjectConfig, root: string) {
         ? { ...session, activeBookId }
         : session,
       activeBookId,
+    });
+  });
+
+  app.post("/api/v1/play/step", async (c) => {
+    const body = await c.req.json<{
+      worldId?: unknown;
+      runId?: unknown;
+      input?: unknown;
+    }>();
+    const worldId = normalizeApiBookId(body.worldId ?? "default-world", "worldId") ?? "default-world";
+    const runId = normalizeApiBookId(body.runId ?? "default-run", "runId") ?? "default-run";
+    if (typeof body.input !== "string" || !body.input.trim()) {
+      throw new ApiError(400, "PLAY_INPUT_REQUIRED", "input is required");
+    }
+
+    const config = await loadCurrentProjectConfig({ requireApiKey: true });
+    const client = createLLMClient(config.llm);
+    const playLogger = createLogger({ tag: "studio:play", sinks: [sseSink, consoleSink] });
+    const runner = new PlayRunner({
+      projectRoot: root,
+      worldId,
+      runId,
+      ctx: {
+        client,
+        model: config.llm.model,
+        projectRoot: root,
+        logger: playLogger,
+      },
+    });
+    const result = await runner.step(body.input);
+    return c.json({
+      worldId,
+      runId,
+      sceneText: result.sceneText,
+      suggestedActions: result.suggestedActions,
+      action: result.action,
+      mutation: result.mutation,
     });
   });
 

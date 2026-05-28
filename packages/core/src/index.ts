@@ -70,6 +70,33 @@ export {
   PlayMutationSchema,
 } from "./models/play.js";
 export {
+  PlayActionInterpreterAgent,
+  PlayWorldMutatorAgent,
+  PlaySceneRendererAgent,
+  type PlayActionInterpreterInput,
+  type PlayWorldMutatorInput,
+  type PlaySceneRenderInput,
+  type PlaySceneRender,
+} from "./play/play-agents.js";
+export { PlayDB } from "./play/play-db.js";
+export { createPlayDB } from "./play/play-db-factory.js";
+export { PlayFileDB } from "./play/play-file-db.js";
+export {
+  applyPlayMutation,
+  type PlayReducerDB,
+  type ApplyPlayMutationInput,
+  type ApplyPlayMutationResult,
+} from "./play/play-reducer.js";
+export {
+  PlayRunner,
+  type PlayActionInterpreterLike,
+  type PlayWorldMutatorLike,
+  type PlaySceneRendererLike,
+  type PlayRunnerOptions,
+  type PlayStepResult,
+} from "./play/play-runner.js";
+export { PlayStore, type PlayTranscriptTurn } from "./play/play-store.js";
+export {
   type ChapterMemo,
   type ChapterIntent,
   type ContextSource,

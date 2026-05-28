@@ -23,6 +23,8 @@ const createInteractionToolsFromDepsMock = vi.fn(() => ({}));
 const loadProjectSessionMock = vi.fn();
 const resolveSessionActiveBookMock = vi.fn();
 const runAgentSessionMock = vi.fn();
+const playRunnerStepMock = vi.fn();
+const playRunnerCtorArgs: unknown[] = [];
 const createAndPersistBookSessionMock = vi.fn();
 const loadBookSessionMock = vi.fn();
 const persistBookSessionMock = vi.fn();
@@ -179,6 +181,14 @@ vi.mock("@actalk/inkos-core", async (importOriginal) => {
     writeNextChapter = writeNextChapterMock;
   }
 
+  class MockPlayRunner {
+    constructor(args: unknown) {
+      playRunnerCtorArgs.push(args);
+    }
+
+    step = playRunnerStepMock;
+  }
+
   class MockScheduler {
     private running = false;
 
@@ -215,6 +225,7 @@ vi.mock("@actalk/inkos-core", async (importOriginal) => {
     loadProjectSession: loadProjectSessionMock,
     resolveSessionActiveBook: resolveSessionActiveBookMock,
     runAgentSession: runAgentSessionMock,
+    PlayRunner: MockPlayRunner,
     buildAgentSystemPrompt: vi.fn(() => "You are helpful."),
     listAvailableGenres: actual.listAvailableGenres,
     readGenreProfile: actual.readGenreProfile,
@@ -395,6 +406,14 @@ describe("createStudioServer daemon lifecycle", () => {
     rollbackToChapterMock.mockResolvedValue([]);
     pipelineConfigs.length = 0;
     runAgentSessionMock.mockReset();
+    playRunnerStepMock.mockReset();
+    playRunnerCtorArgs.length = 0;
+    playRunnerStepMock.mockResolvedValue({
+      sceneText: "车机弹出新城花园 187 次。",
+      suggestedActions: ["继续查看医院记录", "问徐晋安今晚去哪"],
+      action: { actionKind: "look", intent: "查看导航" },
+      mutation: { eventId: "evt-1", turn: 1, actionKind: "look", summary: "发现常用地址统计。" },
+    });
     createAndPersistBookSessionMock.mockReset();
     loadBookSessionMock.mockReset();
     persistBookSessionMock.mockReset();
@@ -2485,6 +2504,32 @@ describe("createStudioServer daemon lifecycle", () => {
     expect(runAgentSessionMock).not.toHaveBeenCalled();
   });
 
+  it("does not bypass the agent for edit-shaped questions", async () => {
+    await mkdir(join(root, "covers", "demo"), { recursive: true });
+    await writeFile(join(root, "covers", "demo", "cover-prompt.md"), "标题字太小。\n", "utf-8");
+
+    const { createStudioServer } = await import("./server.js");
+    const app = createStudioServer(cloneProjectConfig() as never, root);
+
+    const response = await app.request("http://localhost/api/v1/agent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        instruction: "可以把 covers/demo/cover-prompt.md 里的「标题字太小」改成「标题字压到最大」吗？",
+        sessionId: "agent-session-1",
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      response: "Agent response.",
+    });
+    await expect(readFile(join(root, "covers", "demo", "cover-prompt.md"), "utf-8"))
+      .resolves.toBe("标题字太小。\n");
+    expect(runAgentSessionMock).toHaveBeenCalledOnce();
+    expect(appendManualSessionMessagesMock).not.toHaveBeenCalled();
+  });
+
   it("rejects chat artifact edits against source files instead of routing to the agent", async () => {
     await mkdir(join(root, "packages", "core", "src"), { recursive: true });
     await writeFile(join(root, "packages", "core", "src", "index.ts"), "export const value = 1;\n", "utf-8");
@@ -3158,5 +3203,30 @@ describe("createStudioServer daemon lifecycle", () => {
         }),
       }),
     });
+  });
+
+  it("runs a Play step through the independent Play API", async () => {
+    const { createStudioServer } = await import("./server.js");
+    const app = createStudioServer(cloneProjectConfig() as never, root);
+
+    const response = await app.request("http://localhost/api/v1/play/step", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        worldId: "betrayal-car",
+        runId: "run-1",
+        input: "我假装看天气，顺手点开车机导航记录",
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      worldId: "betrayal-car",
+      runId: "run-1",
+      sceneText: "车机弹出新城花园 187 次。",
+      suggestedActions: ["继续查看医院记录", "问徐晋安今晚去哪"],
+    });
+    expect(playRunnerCtorArgs).toHaveLength(1);
+    expect(playRunnerStepMock).toHaveBeenCalledWith("我假装看天气，顺手点开车机导航记录");
   });
 });
