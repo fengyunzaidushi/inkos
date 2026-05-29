@@ -283,6 +283,33 @@ describe("ArchitectAgent — Phase 5 prose output", () => {
     }
   });
 
+  it("repairs missing architect sections once before failing the book creation flow", async () => {
+    const agent = buildAgent();
+    const chat = vi.spyOn(agent as unknown as { chat: (...args: unknown[]) => Promise<unknown> }, "chat")
+      .mockResolvedValueOnce({
+        content: [
+          "=== SECTION: story_frame ===",
+          "# frame",
+          "=== SECTION: volume_map ===",
+          "# map",
+          "=== SECTION: pending_hooks ===",
+          "# hooks",
+        ].join("\n"),
+        usage: ZERO_USAGE,
+      })
+      .mockResolvedValueOnce({ content: SAMPLE_RESPONSE, usage: ZERO_USAGE });
+
+    const out = await agent.generateFoundation(baseBook());
+
+    expect(chat).toHaveBeenCalledTimes(2);
+    const repairMessages = chat.mock.calls[1]?.[0] as Array<{ role: string; content: string }>;
+    expect(repairMessages[0]?.content).toContain("修复 InkOS architect");
+    expect(repairMessages[1]?.content).toContain("缺失 section");
+    expect(out.storyFrame).toContain("这本书讲的是");
+    expect(out.bookRules).toContain("version");
+    expect(out.roles?.length).toBeGreaterThan(0);
+  });
+
   it("requires at least one of story_frame or legacy story_bible", async () => {
     const agent = buildAgent();
     vi.spyOn(agent as unknown as { chat: (...args: unknown[]) => Promise<unknown> }, "chat")

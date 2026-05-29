@@ -98,6 +98,18 @@ export interface ArchitectOutput {
   readonly roles?: ReadonlyArray<ArchitectRole>;
 }
 
+class MissingArchitectSectionsError extends Error {
+  readonly missing: readonly string[];
+  readonly content: string;
+
+  constructor(missing: readonly string[], content: string) {
+    super(`Architect output missing required section${missing.length > 1 ? "s" : ""}: ${missing.join(", ")}`);
+    this.name = "MissingArchitectSectionsError";
+    this.missing = missing;
+    this.content = content;
+  }
+}
+
 export class ArchitectAgent extends BaseAgent {
   get name(): string {
     return "architect";
@@ -151,7 +163,7 @@ export class ArchitectAgent extends BaseAgent {
       { role: "user", content: userMessage },
     ], { temperature: 0.8 });
 
-    return this.parseSections(response.content, resolvedLanguage);
+    return this.parseSectionsWithRepair(response.content, resolvedLanguage);
   }
 
   private buildRevisePrompt(reviseFrom: {
@@ -597,6 +609,62 @@ You MUST emit all **5 SECTION blocks in order**: story_frame → volume_map → 
   // -------------------------------------------------------------------------
   // Parsing
   // -------------------------------------------------------------------------
+  private async parseSectionsWithRepair(content: string, language: "zh" | "en"): Promise<ArchitectOutput> {
+    try {
+      return this.parseSections(content, language);
+    } catch (error) {
+      if (!(error instanceof MissingArchitectSectionsError)) {
+        throw error;
+      }
+
+      const repaired = await this.repairMissingSections(error, language);
+      try {
+        return this.parseSections(repaired, language);
+      } catch (repairError) {
+        if (repairError instanceof MissingArchitectSectionsError) {
+          throw new Error(
+            `Architect output missing required sections after repair: ${repairError.missing.join(", ")}`,
+            { cause: repairError },
+          );
+        }
+        throw repairError;
+      }
+    }
+  }
+
+  private async repairMissingSections(
+    error: MissingArchitectSectionsError,
+    language: "zh" | "en",
+  ): Promise<string> {
+    const missingList = error.missing.join(", ");
+    const system = language === "en"
+      ? [
+          "You repair InkOS architect output formatting.",
+          "The previous draft is partially useful but is missing required SECTION blocks.",
+          "Do not invent a new book. Preserve usable existing content and add the missing parts.",
+          "Return the complete output with exactly these 5 SECTION blocks in order: story_frame, volume_map, roles, book_rules, pending_hooks.",
+          "book_rules must be YAML frontmatter only. pending_hooks must be a Markdown table.",
+          "Do not explain the repair.",
+        ].join("\n")
+      : [
+          "你负责修复 InkOS architect 的输出格式。",
+          "上一轮草稿有可用内容，但缺少必需的 SECTION 块。",
+          "不要重新发明一本书；保留已有可用内容，只补齐缺失部分并整理成完整输出。",
+          "必须按顺序返回完整 5 段 SECTION：story_frame、volume_map、roles、book_rules、pending_hooks。",
+          "book_rules 只能是 YAML frontmatter；pending_hooks 必须是 Markdown 表格。",
+          "不要解释修复过程。",
+        ].join("\n");
+    const user = language === "en"
+      ? `Missing sections: ${missingList}\n\nOriginal partial output:\n\n${error.content}`
+      : `缺失 section：${missingList}\n\n原始不完整输出如下：\n\n${error.content}`;
+
+    const response = await this.chat([
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ], { temperature: 0.2 });
+    return response.content;
+  }
+
   private parseSections(content: string, language: "zh" | "en"): ArchitectOutput {
     const parsedSections = new Map<string, string>();
     const sectionPattern = /^\s*===\s*SECTION\s*[：:]\s*([^\n=]+?)\s*===\s*$/gim;
@@ -653,9 +721,7 @@ You MUST emit all **5 SECTION blocks in order**: story_frame → volume_map → 
     if (!bookRules) missing.push("book_rules");
     if (!pendingHooksRaw) missing.push("pending_hooks");
     if (missing.length > 0) {
-      throw new Error(
-        `Architect output missing required section${missing.length > 1 ? "s" : ""}: ${missing.join(", ")}`,
-      );
+      throw new MissingArchitectSectionsError(missing, content);
     }
 
     const roles = this.parseRoles(rolesRaw);
@@ -1022,7 +1088,7 @@ ${continuationDirective}
       { role: "user", content: userMessage },
     ], { temperature: 0.5 });
 
-    return this.parseSections(response.content, resolvedLanguage);
+    return this.parseSectionsWithRepair(response.content, resolvedLanguage);
   }
 
   async generateFanficFoundation(
@@ -1079,7 +1145,7 @@ ${genreBody}
       },
     ], { temperature: 0.7 });
 
-    return this.parseSections(response.content, book.language ?? "zh");
+    return this.parseSectionsWithRepair(response.content, book.language ?? "zh");
   }
 
   // -------------------------------------------------------------------------
