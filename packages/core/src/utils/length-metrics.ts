@@ -6,6 +6,16 @@ const REFERENCE_TARGET = 2200;
 const SOFT_RANGE_DELTA = 300;
 const HARD_RANGE_DELTA = 600;
 
+// Per-chapter length default in the book's native unit: Chinese counts characters (3000字),
+// English counts words (~2000 ≈ a 3000-char chapter). One cross-language number would mis-scale —
+// 3000 read as English words runs ~50% long, and the hard-range guard then force-expands correct chapters.
+export const DEFAULT_CHAPTER_LENGTH_ZH = 3000;
+export const DEFAULT_CHAPTER_LENGTH_EN = 2000;
+
+export function defaultChapterLength(language: LengthLanguage = "zh"): number {
+  return language === "en" ? DEFAULT_CHAPTER_LENGTH_EN : DEFAULT_CHAPTER_LENGTH_ZH;
+}
+
 export function countChapterLength(
   content: string,
   countingMode: LengthCountingMode,

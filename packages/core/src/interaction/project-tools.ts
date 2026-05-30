@@ -12,6 +12,7 @@ import type {
 } from "../index.js";
 import { chatCompletion, chatWithTools } from "../index.js";
 import { executeEditTransaction } from "./edit-controller.js";
+import { defaultChapterLength } from "../utils/length-metrics.js";
 import type { InteractionRuntimeTools } from "./runtime.js";
 import type { BookCreationDraft } from "./session.js";
 import { writeExportArtifact } from "./export-artifact.js";
@@ -100,7 +101,7 @@ function buildBookConfig(input: {
     genre: input.genre ?? "other",
     status: "outlining",
     targetChapters: input.targetChapters ?? 200,
-    chapterWordCount: input.chapterWordCount ?? 3000,
+    chapterWordCount: input.chapterWordCount ?? defaultChapterLength(input.language === "en" ? "en" : "zh"),
     ...(input.language ? { language: input.language } : {}),
     createdAt: now,
     updatedAt: now,

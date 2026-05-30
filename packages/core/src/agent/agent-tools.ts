@@ -2,6 +2,7 @@ import { Type, type Static } from "@mariozechner/pi-ai";
 import type { AgentTool, AgentToolResult, AgentToolUpdateCallback } from "@mariozechner/pi-agent-core";
 import type { PipelineRunner } from "../pipeline/runner.js";
 import { type ReviseMode } from "../agents/reviser.js";
+import { defaultChapterLength } from "../utils/length-metrics.js";
 import { readFile, writeFile, readdir, stat } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { StateManager } from "../state/manager.js";
@@ -176,7 +177,7 @@ const SubAgentParams = Type.Object({
     Type.Literal("en"),
   ], { description: "architect only: writing language. Default: zh" })),
   targetChapters: Type.Optional(Type.Number({ description: "architect only: total chapter count. Default: 200" })),
-  chapterWordCount: Type.Optional(Type.Number({ description: "architect/writer: words per chapter. Default: 3000" })),
+  chapterWordCount: Type.Optional(Type.Number({ description: "architect/writer: per-chapter length in the book's native unit (zh characters / en words). Default: 3000 zh, 2000 en" })),
   revise: Type.Optional(Type.Boolean({
     description: "architect only: true 表示在当前 active book 上重新生成架构稿，而不是新建书籍。no-book creation sessions cannot revise an existing book.",
   })),
@@ -285,7 +286,7 @@ export function createSubAgentTool(
                 language: (language ?? "zh") as any,
                 status: "outlining" as any,
                 targetChapters: targetChapters ?? 200,
-                chapterWordCount: chapterWordCount ?? 3000,
+                chapterWordCount: chapterWordCount ?? defaultChapterLength(language === "en" ? "en" : "zh"),
                 createdAt: now,
                 updatedAt: now,
               },

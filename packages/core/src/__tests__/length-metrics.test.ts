@@ -3,6 +3,7 @@ import {
   buildLengthSpec,
   chooseNormalizeMode,
   countChapterLength,
+  defaultChapterLength,
   isOutsideHardRange,
   isOutsideSoftRange,
 } from "../utils/length-metrics.js";
@@ -14,6 +15,12 @@ describe("length metrics", () => {
 
   it("counts English chapter length using en_words", () => {
     expect(countChapterLength("He looked at the sky.", "en_words")).toBe(5);
+  });
+
+  it("defaults chapter length to the language-native unit", () => {
+    expect(defaultChapterLength("zh")).toBe(3000);
+    expect(defaultChapterLength("en")).toBe(2000);
+    expect(defaultChapterLength()).toBe(3000);
   });
 
   it("counts prose only for markdown-shaped Chinese chapters", () => {

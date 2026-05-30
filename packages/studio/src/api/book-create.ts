@@ -1,4 +1,4 @@
-import { normalizePlatformOrOther, type Platform } from "@actalk/inkos-core";
+import { normalizePlatformOrOther, defaultChapterLength, type Platform } from "@actalk/inkos-core";
 
 export interface StudioCreateBookBody {
   readonly title: string;
@@ -52,7 +52,7 @@ export function buildStudioBookConfig(body: StudioCreateBookBody, now: string): 
     genre: body.genre,
     status: "outlining",
     targetChapters: body.targetChapters ?? 200,
-    chapterWordCount: body.chapterWordCount ?? 3000,
+    chapterWordCount: body.chapterWordCount ?? defaultChapterLength(body.language === "en" ? "en" : "zh"),
     ...(body.language === "en"
       ? { language: "en" as const }
       : body.language === "zh"
