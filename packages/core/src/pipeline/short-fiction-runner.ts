@@ -97,7 +97,11 @@ export async function runShortFictionProduction(
   // A stable storyId lets a re-run resume from disk instead of redoing finished
   // work — a transient failure in a late stage used to throw the whole short
   // away (orphaning outline/drafts). If it already finished, return it as-is.
-  if (providedStoryId && await projectFileExists(root, join(outDir, providedStoryId, "final", "full.md"))) {
+  if (
+    providedStoryId
+    && await projectFileExists(root, join(outDir, providedStoryId, "final", "full.md"))
+    && !await isFailedShortRun(root, join(outDir, providedStoryId, "status.json"))
+  ) {
     return buildShortRunResult(providedStoryId, join(outDir, providedStoryId), { coverError: "already-complete" });
   }
 
@@ -270,6 +274,17 @@ async function projectFileExists(root: string, path: string): Promise<boolean> {
   try {
     await access(safeChildPath(root, path));
     return true;
+  } catch {
+    return false;
+  }
+}
+
+async function isFailedShortRun(root: string, path: string): Promise<boolean> {
+  const raw = await tryReadProjectText(root, path);
+  if (!raw) return false;
+  try {
+    const parsed = JSON.parse(raw) as { status?: unknown };
+    return parsed.status === "failed";
   } catch {
     return false;
   }

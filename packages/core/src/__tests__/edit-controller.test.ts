@@ -128,6 +128,31 @@ describe("edit controller", () => {
     expect(result.touchedFiles.length).toBeGreaterThan(0);
   });
 
+  it("does not rewrite story snapshots during entity rename", async () => {
+    const bookDir = join(projectRoot, "books", "harbor");
+    await writeFile(join(bookDir, "story", "story_bible.md"), "主角陆尘住在港口。", "utf-8");
+    await mkdir(join(bookDir, "story", "snapshots", "1"), { recursive: true });
+    await writeFile(join(bookDir, "story", "snapshots", "1", "current_state.md"), "陆尘在旧快照里。", "utf-8");
+
+    await executeEditTransaction(
+      {
+        bookDir: (bookId) => join(projectRoot, "books", bookId),
+        loadChapterIndex: async () => [],
+        saveChapterIndex: async () => undefined,
+      },
+      {
+        kind: "entity-rename",
+        bookId: "harbor",
+        entityType: "protagonist",
+        oldValue: "陆尘",
+        newValue: "林砚",
+      },
+    );
+
+    await expect(readFile(join(bookDir, "story", "story_bible.md"), "utf-8")).resolves.toContain("林砚");
+    await expect(readFile(join(bookDir, "story", "snapshots", "1", "current_state.md"), "utf-8")).resolves.toContain("陆尘");
+  });
+
   it("renames entity files whose filename embeds the old name so path references don't dangle", async () => {
     const bookDir = join(projectRoot, "books", "rolebook");
     await mkdir(join(bookDir, "roles", "主要角色"), { recursive: true });

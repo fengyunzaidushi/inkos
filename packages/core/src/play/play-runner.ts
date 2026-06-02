@@ -90,12 +90,6 @@ export class PlayRunner {
     if (!rawInput) throw new Error("Play input is empty.");
 
     await this.store.ensureRun(this.options.worldId, this.options.runId);
-    await this.store.appendTranscriptTurn(this.options.worldId, this.options.runId, {
-      role: "user",
-      content: rawInput,
-      timestamp: Date.now(),
-    });
-
     const turn = (await this.store.readEvents(this.options.worldId, this.options.runId)).length + 1;
     const world = await this.store.loadWorld(this.options.worldId);
     const language = world?.language ?? "zh";
@@ -145,6 +139,11 @@ export class PlayRunner {
       blocked: mutation.blocked,
     });
     await this.store.writeProjection(this.options.worldId, this.options.runId, "projections/scene.md", `${render.sceneText}\n`);
+    await this.store.appendTranscriptTurn(this.options.worldId, this.options.runId, {
+      role: "user",
+      content: rawInput,
+      timestamp: Date.now(),
+    });
     await this.store.appendTranscriptTurn(this.options.worldId, this.options.runId, {
       role: "assistant",
       content: render.sceneText,

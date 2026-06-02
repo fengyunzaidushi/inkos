@@ -71,11 +71,28 @@ export async function isBookFoundationComplete(bookDir: string): Promise<boolean
   }
   try {
     const matrix = await readFile(join(bookDir, "story", "character_matrix.md"), "utf-8");
-    if (matrix.trim().length > 0) return true;
+    if (hasLegacyCharacterMatrixRoles(matrix)) return true;
   } catch {
     // No legacy matrix either.
   }
   return false;
+}
+
+function hasLegacyCharacterMatrixRoles(content: string): boolean {
+  const normalized = content
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !line.includes("兼容提示"))
+    .filter((line) => !line.includes("story/roles/"))
+    .filter((line) => !/^\(?(?:none|无|暂无)\)?$/i.test(line));
+
+  return normalized.some((line) => {
+    const match = /^#{2,}\s+(.+)$/.exec(line);
+    if (!match) return false;
+    const title = match[1].trim().replace(/[*`#]/g, "");
+    return !/^(主要角色|次要角色|major roles?|minor roles?|characters?|角色矩阵)$/i.test(title);
+  });
 }
 
 async function readOr(path: string, fallback: string): Promise<string> {

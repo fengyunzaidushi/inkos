@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { SessionKindSchema, type SessionKind } from "./session.js";
+import { PlayModeSchema, SessionKindSchema, type PlayMode, type SessionKind } from "./session.js";
 export type { SessionKind };
+export type { PlayMode };
 
 export const TranscriptRoleSchema = z.enum(["user", "assistant", "toolResult", "system"]);
 export type TranscriptRole = z.infer<typeof TranscriptRoleSchema>;
@@ -16,6 +17,7 @@ export const SessionCreatedEventSchema = BaseEventSchema.extend({
   type: z.literal("session_created"),
   bookId: z.string().nullable(),
   sessionKind: SessionKindSchema.optional(),
+  playMode: PlayModeSchema.optional(),
   title: z.string().nullable().default(null),
   createdAt: z.number().int().nonnegative(),
   updatedAt: z.number().int().nonnegative(),
@@ -25,6 +27,7 @@ export const SessionMetadataUpdatedEventSchema = BaseEventSchema.extend({
   type: z.literal("session_metadata_updated"),
   bookId: z.string().nullable().optional(),
   sessionKind: SessionKindSchema.optional(),
+  playMode: PlayModeSchema.optional(),
   title: z.string().nullable().optional(),
   updatedAt: z.number().int().nonnegative(),
 });

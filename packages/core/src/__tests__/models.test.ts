@@ -361,6 +361,15 @@ describe("ProjectConfigSchema", () => {
     expect(overridden.writing.reviewRetries).toBe(3);
   });
 
+  it("keeps the long-form chapter review mode through config parsing", () => {
+    const parsed = ProjectConfigSchema.parse({
+      ...validProject,
+      writing: { reviewRetries: 1, reviewMode: "manual" },
+    });
+
+    expect(parsed.writing.reviewMode).toBe("manual");
+  });
+
   it("applies default empty notify array", () => {
     const withoutNotify = {
       name: "p1",

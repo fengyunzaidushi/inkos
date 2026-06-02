@@ -91,6 +91,7 @@ export type FoundationConfig = z.infer<typeof FoundationConfigSchema>;
 
 export const WritingConfigSchema = z.object({
   reviewRetries: z.number().int().min(0).max(10).default(1),
+  reviewMode: z.enum(["auto", "manual"]).default("auto"),
 });
 
 export type WritingConfig = z.infer<typeof WritingConfigSchema>;

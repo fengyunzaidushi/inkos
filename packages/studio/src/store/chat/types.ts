@@ -64,6 +64,7 @@ export interface SessionSummary {
   readonly sessionId: string;
   readonly bookId: string | null;
   readonly sessionKind?: ChatSessionKind;
+  readonly playMode?: PlayMode;
   readonly title: string | null;
   readonly messageCount: number;
   readonly createdAt: number;
@@ -81,6 +82,7 @@ export interface AgentResponse {
     readonly sessionId?: string;
     readonly bookId?: string | null;
     readonly sessionKind?: ChatSessionKind;
+    readonly playMode?: PlayMode;
     readonly title?: string | null;
     readonly activeBookId?: string;
     readonly creationDraft?: unknown;
@@ -94,6 +96,7 @@ export interface SessionResponse {
     readonly sessionId?: string;
     readonly bookId?: string | null;
     readonly sessionKind?: ChatSessionKind;
+    readonly playMode?: PlayMode;
     readonly title?: string | null;
     readonly activeBookId?: string;
     readonly messages?: ReadonlyArray<SessionMessage>;

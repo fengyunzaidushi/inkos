@@ -230,10 +230,20 @@ function normalizePlayMutation(value: unknown): unknown {
   if (Array.isArray(v.stateSlots)) v.stateSlots = { upsert: v.stateSlots };
   if (Array.isArray(v.evidence)) v.evidence = { transitions: v.evidence };
   if (typeof v.notes === "string") v.notes = v.notes.trim() ? [v.notes] : [];
-  const eventId = typeof v.eventId === "string" && v.eventId.trim() ? v.eventId : "evt-0";
+  const turn = typeof v.turn === "number" && Number.isInteger(v.turn) && v.turn >= 0
+    ? v.turn
+    : typeof v.turn === "string" && /^\d+$/.test(v.turn.trim()) && Number(v.turn.trim()) >= 0
+      ? Number(v.turn.trim())
+      : undefined;
+  const eventId = typeof v.eventId === "string" && v.eventId.trim()
+    ? v.eventId
+    : turn !== undefined
+      ? `evt-${turn}`
+      : "";
+  v.eventId = eventId;
   v.entities = backfillUpsertIds(v.entities, "ent", "label");
   v.stateSlots = backfillUpsertIds(v.stateSlots, "slot", "label");
-  v.edges = backfillEdges(v.edges, eventId, buildLabelToId(v.entities));
+  v.edges = backfillEdges(v.edges, eventId || "evt-0", buildLabelToId(v.entities));
   return v;
 }
 

@@ -95,4 +95,23 @@ describe("short fiction resume + failure marker (C2)", () => {
     expect(writeDraft).not.toHaveBeenCalled();       // nothing regenerated
     expect(result.coverError).toBe("already-complete");
   });
+
+  it("does not skip a previously failed run just because final/full.md exists", async () => {
+    await mkdir(join(root, "shorts", "elevator", "outline"), { recursive: true });
+    await mkdir(join(root, "shorts", "elevator", "final"), { recursive: true });
+    await writeFile(join(root, "shorts", "elevator", "outline", "v002.md"), "## 既有大纲", "utf-8");
+    await writeFile(join(root, "shorts", "elevator", "final", "full.md"), "# partial final", "utf-8");
+    await writeFile(join(root, "shorts", "elevator", "status.json"), JSON.stringify({ status: "failed", error: "package failed" }), "utf-8");
+    stubDownstream();
+    const packageSpy = vi.spyOn(ShortFictionPackagingAgent.prototype, "generatePackage");
+
+    const result = await runShortFictionProduction({
+      projectRoot: root, direction: "恐怖短篇", storyId: "elevator",
+      chapterCount: CH, charsPerChapter: 1000, cover: false, runtimes: runtimes(root),
+    });
+
+    expect(result.coverError).toBe("disabled");
+    expect(packageSpy).toHaveBeenCalled();
+    await expect(access(join(root, "shorts", "elevator", "final", "sales-package.md"))).resolves.toBeUndefined();
+  });
 });

@@ -155,6 +155,16 @@ describe("book-session-store", () => {
         .toThrow();
     });
 
+    it("persists and restores playMode for play sessions", async () => {
+      const session = await createAndPersistBookSession(tempDir, null, "123456-playmd", "play", { playMode: "guided" });
+
+      expect(session.playMode).toBe("guided");
+      const loaded = await loadBookSession(tempDir, "123456-playmd");
+      expect(loaded?.playMode).toBe("guided");
+      const list = await listBookSessions(tempDir, null);
+      expect(list.find((item) => item.sessionId === "123456-playmd")?.playMode).toBe("guided");
+    });
+
     it("does not duplicate session_created when explicit session creation races", async () => {
       await Promise.all([
         createAndPersistBookSession(tempDir, "book-a", "create-race"),

@@ -132,6 +132,7 @@ async function collectEditableFiles(dir: string): Promise<ReadonlyArray<string>>
   const files = await Promise.all(entries.map(async (entry) => {
     const fullPath = join(dir, entry.name);
     if (entry.isDirectory()) {
+      if (entry.name === "snapshots") return [];
       return collectEditableFiles(fullPath);
     }
     if (!/\.(md|json|ya?ml|txt)$/i.test(entry.name)) {

@@ -5,6 +5,7 @@ import {
   type BookSession,
   type InteractionMessage,
   type ToolExecution,
+  type PlayMode,
 } from "./session.js";
 import type { MessageEvent, SessionKind, TranscriptEvent } from "./session-transcript-schema.js";
 
@@ -606,6 +607,8 @@ function messageEventsToInteractionMessages(events: MessageEvent[]): Interaction
     propose_action: "确认动作",
     short_fiction_run: "短篇生产",
     generate_cover: "生成封面",
+    play_start: "启动互动世界",
+    play_step: "推进互动世界",
   };
 
   const messages: InteractionMessage[] = [];
@@ -740,6 +743,7 @@ export async function deriveBookSessionFromTranscript(
   const created = events.find((event) => event.type === "session_created");
   let bookId = created?.type === "session_created" ? created.bookId : null;
   let sessionKind = created?.type === "session_created" ? created.sessionKind : undefined;
+  let playMode: PlayMode | undefined = created?.type === "session_created" ? created.playMode : undefined;
   let title = created?.type === "session_created" ? created.title : null;
   const createdAt = created?.type === "session_created"
     ? created.createdAt
@@ -759,6 +763,7 @@ export async function deriveBookSessionFromTranscript(
     if (event.type !== "session_metadata_updated") continue;
     if ("bookId" in event && event.bookId !== undefined) bookId = event.bookId;
     if ("sessionKind" in event && event.sessionKind !== undefined) sessionKind = event.sessionKind;
+    if ("playMode" in event && event.playMode !== undefined) playMode = event.playMode;
     if ("title" in event && event.title !== undefined) title = event.title;
     updatedAt = Math.max(updatedAt, event.updatedAt);
   }
@@ -773,6 +778,7 @@ export async function deriveBookSessionFromTranscript(
     sessionId,
     bookId,
     sessionKind,
+    playMode,
     title,
     messages,
     draftRounds: [],

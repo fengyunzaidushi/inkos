@@ -86,6 +86,8 @@ export async function migrateLegacyBookSessionToTranscript(
         seq: sessionCreatedSeq,
         timestamp: session.createdAt,
         bookId: session.bookId,
+        ...(session.sessionKind ? { sessionKind: session.sessionKind } : {}),
+        ...(session.playMode ? { playMode: session.playMode } : {}),
         title: session.title,
         createdAt: session.createdAt,
         updatedAt: session.updatedAt,

@@ -137,4 +137,41 @@ describe("PlayRunner", () => {
     await expect(readFile(join(runDir, "projections", "scene.md"), "utf-8"))
       .resolves.toContain("屏幕弹出新城花园 187 次");
   });
+
+  it("does not persist a one-sided user transcript when mutation application fails", async () => {
+    const db = new FakePlayDB();
+    const runner = new PlayRunner({
+      projectRoot: root,
+      worldId: "bad-turn",
+      runId: "run-1",
+      db,
+      agents: {
+        actionInterpreter: { interpret: vi.fn(async () => ({ actionKind: "look", intent: "看墙上的钟" })) },
+        worldMutator: {
+          proposeMutation: vi.fn(async () => ({
+            eventId: "evt-1",
+            turn: 1,
+            actionKind: "look",
+            summary: "错误地引用了不存在的人。",
+            stateSlots: {
+              upsert: [{
+                id: "slot_missing",
+                ownerEntityId: "missing_actor",
+                kind: "pressure",
+                label: "压力",
+                value: 10,
+                updatedEventId: "evt-1",
+              }],
+            },
+          })),
+        },
+        sceneRenderer: { render: vi.fn(async () => ({ sceneText: "钟停在十二点。", suggestedActions: [] })) },
+      },
+    });
+
+    await expect(runner.step("我看墙上的钟")).rejects.toThrow(/missing entity/);
+    await expect(readFile(join(root, "worlds", "bad-turn", "runs", "run-1", "transcript.jsonl"), "utf-8"))
+      .rejects
+      .toThrow();
+  });
 });

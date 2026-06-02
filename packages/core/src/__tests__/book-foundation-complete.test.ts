@@ -62,4 +62,17 @@ describe("isBookFoundationComplete", () => {
     await writeFile(join(dir, "story", "character_matrix.md"), "## 林秋\n- 定位: 主角");
     expect(await isBookFoundationComplete(dir)).toBe(true);
   });
+
+  it("does not treat an empty legacy character_matrix pointer as real roles", async () => {
+    await writeFoundation(dir, { bookJson: true, storyFrame: true, volumeMap: true, bookRules: true, pendingHooks: true });
+    await writeFile(join(dir, "story", "character_matrix.md"), [
+      "# 角色矩阵",
+      "",
+      "兼容提示：新角色卡位于 `story/roles/`。",
+      "",
+      "## 主要角色",
+      "(none)",
+    ].join("\n"));
+    expect(await isBookFoundationComplete(dir)).toBe(false);
+  });
 });

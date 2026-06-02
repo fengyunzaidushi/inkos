@@ -240,6 +240,24 @@ describe("play models", () => {
     expect(edge?.validFromEventId).toBe("evt-9");         // temporal fields backfilled
   });
 
+  it("backfills edge temporal fields from the turn event id when the model omits eventId", () => {
+    const mutation = PlayMutationSchema.parse({
+      turn: 12,
+      actionKind: "say",
+      entities: [
+        { id: "actor_a", type: "actor", label: "甲", updatedEventId: "evt-12" },
+        { id: "actor_b", type: "actor", label: "乙", updatedEventId: "evt-12" },
+      ],
+      edges: [
+        { from: "甲", relation: "试探", to: "乙" },
+      ],
+    });
+
+    expect(mutation.eventId).toBe("evt-12");
+    expect(mutation.edges.upsert[0]?.validFromEventId).toBe("evt-12");
+    expect(mutation.edges.upsert[0]?.sourceEventId).toBe("evt-12");
+  });
+
   it("backfills a missing id from the label so a labeled entity/slot survives instead of vanishing", () => {
     const mutation = PlayMutationSchema.parse({
       eventId: "evt-7",

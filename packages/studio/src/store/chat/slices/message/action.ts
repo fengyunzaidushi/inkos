@@ -24,10 +24,16 @@ export const createMessageSlice: StateCreator<ChatStore, [], [], MessageActions>
   activateSession: (sessionId) =>
     set({ activeSessionId: sessionId }),
 
-  setSessionPlayMode: (sessionId, playMode) =>
+  setSessionPlayMode: (sessionId, playMode) => {
     set((state) => ({
       sessions: updateSession(state.sessions, sessionId, () => ({ playMode })),
-    })),
+    }));
+    void fetchJson(`/sessions/${sessionId}/play-mode`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ playMode }),
+    }).catch(() => undefined);
+  },
 
   setInput: (text) => set({ input: text }),
 
@@ -143,6 +149,7 @@ export const createMessageSlice: StateCreator<ChatStore, [], [], MessageActions>
         sessionId,
         bookId: data.session?.bookId ?? bookId ?? null,
         sessionKind: data.session?.sessionKind ?? sessionKind,
+        playMode: data.session?.playMode,
         title: data.session?.title ?? null,
       });
       return {
@@ -271,10 +278,12 @@ export const createMessageSlice: StateCreator<ChatStore, [], [], MessageActions>
                 sessionId: detailSessionId,
                 bookId: nextBookId,
                 sessionKind: detail.sessionKind,
+                playMode: detail.playMode,
                 title: detail.title ?? null,
               })),
               bookId: nextBookId,
               sessionKind: detail.sessionKind ?? runtime?.sessionKind,
+              playMode: detail.playMode ?? runtime?.playMode,
               title: detail.title ?? runtime?.title ?? null,
               messages,
             },
@@ -318,12 +327,12 @@ export const createMessageSlice: StateCreator<ChatStore, [], [], MessageActions>
         await fetchJson<SessionResponse>("/sessions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId, bookId: session.bookId, sessionKind }),
+          body: JSON.stringify({ sessionId, bookId: session.bookId, sessionKind, playMode }),
         });
         // 落盘成功：把 isDraft 翻成 false，同时把 sessionId 追加进 sessionIdsByBook
         // 让侧边栏现在才看到这条会话。
         set((state) => ({
-          sessions: updateSession(state.sessions, sessionId, () => ({ isDraft: false, sessionKind })),
+          sessions: updateSession(state.sessions, sessionId, () => ({ isDraft: false, sessionKind, playMode })),
           sessionIdsByBook: {
             ...state.sessionIdsByBook,
             [bookKey(session.bookId)]: mergeSessionIds(

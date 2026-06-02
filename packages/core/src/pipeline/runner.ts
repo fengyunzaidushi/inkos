@@ -1585,7 +1585,7 @@ export class PipelineRunner {
       normalizeApplied = finalContent !== output.content;
       preAuditNormalizedWordCount = writerCount;
       auditResult = {
-        passed: true,
+        passed: false,
         issues: [],
         summary: pipelineLang === "en"
           ? "Not reviewed yet (manual mode: stopped after writing — run review when ready)."

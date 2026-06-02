@@ -212,13 +212,19 @@ export function updateSession(
 
 export function upsertSessionSummary(
   sessions: Record<string, SessionRuntime>,
-  summary: Pick<SessionSummary, "sessionId" | "bookId" | "sessionKind" | "title">,
+  summary: Pick<SessionSummary, "sessionId" | "bookId" | "sessionKind" | "playMode" | "title">,
 ): Record<string, SessionRuntime> {
   const existing = sessions[summary.sessionId];
   return {
     ...sessions,
     [summary.sessionId]: existing
-      ? { ...existing, bookId: summary.bookId, sessionKind: summary.sessionKind ?? existing.sessionKind, title: summary.title }
+      ? {
+          ...existing,
+          bookId: summary.bookId,
+          sessionKind: summary.sessionKind ?? existing.sessionKind,
+          playMode: summary.playMode ?? existing.playMode,
+          title: summary.title,
+        }
       : createSessionRuntime(summary),
   };
 }

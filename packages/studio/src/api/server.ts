@@ -2665,16 +2665,41 @@ export function createStudioServer(initialConfig: ProjectConfig, root: string) {
   });
 
   app.post("/api/v1/sessions", async (c) => {
-    const body = await c.req.json<{ bookId?: string | null; sessionId?: string; sessionKind?: string }>().catch(() => ({}));
+    const body = await c.req.json<{ bookId?: string | null; sessionId?: string; sessionKind?: string; playMode?: string }>().catch(() => ({}));
     const bookId = normalizeApiBookId((body as { bookId?: unknown }).bookId, "bookId");
     const sessionKind = normalizeStudioSessionKind(
       (body as { sessionKind?: unknown }).sessionKind,
       bookId ? "book" : "chat",
     );
+    const playMode = normalizeStudioPlayMode((body as { playMode?: unknown }).playMode);
     const sessionId = (body as { sessionId?: string }).sessionId;
     // sessionId 只允许 timestamp-random 格式；防止注入任意文件名
     const safeSessionId = sessionId && /^[0-9]+-[a-z0-9]+$/.test(sessionId) ? sessionId : undefined;
-    const session = await createAndPersistBookSession(root, bookId, safeSessionId, sessionKind);
+    const session = await createAndPersistBookSession(
+      root,
+      bookId,
+      safeSessionId,
+      sessionKind,
+      ...(playMode ? [{ playMode }] as const : []),
+    );
+    return c.json({ session });
+  });
+
+  app.put("/api/v1/sessions/:sessionId/play-mode", async (c) => {
+    const body = await c.req.json<{ playMode?: string }>().catch(() => ({}));
+    const playMode = normalizeStudioPlayMode((body as { playMode?: unknown }).playMode);
+    if (!playMode) {
+      throw new ApiError(400, "INVALID_PLAY_MODE", "playMode is required");
+    }
+    const existing = await loadBookSession(root, c.req.param("sessionId"));
+    if (!existing) return c.json({ error: "Session not found" }, 404);
+    const session = await createAndPersistBookSession(
+      root,
+      existing.bookId,
+      existing.sessionId,
+      existing.sessionKind,
+      { playMode },
+    );
     return c.json({ session });
   });
 
@@ -2766,18 +2791,20 @@ export function createStudioServer(initialConfig: ProjectConfig, root: string) {
         reqSessionKind,
         bookSession.sessionKind ?? (agentBookId ? "book" : "chat"),
       );
-      if (bookSession.sessionKind !== sessionKind) {
+      if (bookSession.sessionKind !== sessionKind || (playMode && bookSession.playMode !== playMode)) {
         const updatedSession = await createAndPersistBookSession(
           root,
           bookSession.bookId,
           bookSession.sessionId,
           sessionKind,
+          ...(playMode ? [{ playMode }] as const : []),
         );
         bookSession = updatedSession;
       }
+      let activeBookConfig: { readonly language?: string } | null = null;
       if (agentBookId) {
         try {
-          await state.loadBookConfig(agentBookId);
+          activeBookConfig = await state.loadBookConfig(agentBookId);
         } catch {
           throw new ApiError(404, "BOOK_NOT_FOUND", `Book not found: ${agentBookId}`);
         }
@@ -3035,7 +3062,8 @@ export function createStudioServer(initialConfig: ProjectConfig, root: string) {
       // Without this, an English request on a zh-default project gets Chinese replies — and
       // a Chinese play world, because play_start then infers from the rewritten premise.
       const configLanguage = config.language === "en" ? "en" : "zh";
-      const surfaceLanguage = agentBookId ? configLanguage : inferLanguage(instruction);
+      const bookLanguage = activeBookConfig?.language === "en" ? "en" : activeBookConfig?.language === "zh" ? "zh" : undefined;
+      const surfaceLanguage = agentBookId ? (bookLanguage ?? configLanguage) : inferLanguage(instruction);
 
       // Run pi-agent session
       const collectedToolExecs: CollectedToolExec[] = [];

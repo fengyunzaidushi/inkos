@@ -2789,6 +2789,34 @@ describe("createStudioServer daemon lifecycle", () => {
     expect(agentConfig.bookId).toBe("demo-book");
   });
 
+  it("uses the active book language for book-bound agent sessions", async () => {
+    loadBookConfigMock.mockResolvedValueOnce({
+      id: "demo-book",
+      title: "Demo Book",
+      platform: "qidian",
+      genre: "progression",
+      status: "active",
+      targetChapters: 100,
+      chapterWordCount: 1800,
+      language: "en",
+      createdAt: "2026-04-12T00:00:00.000Z",
+      updatedAt: "2026-04-12T00:00:00.000Z",
+    });
+    const { createStudioServer } = await import("./server.js");
+    const app = createStudioServer(cloneProjectConfig() as never, root);
+
+    const response = await app.request("http://localhost/api/v1/agent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ instruction: "check current state", sessionId: "agent-session-1" }),
+    });
+
+    expect(response.status).toBe(200);
+    const agentConfig = runAgentSessionMock.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expect(agentConfig.bookId).toBe("demo-book");
+    expect(agentConfig.language).toBe("en");
+  });
+
   it("rejects an activeBookId that conflicts with the persisted session book", async () => {
     const { createStudioServer } = await import("./server.js");
     const app = createStudioServer(cloneProjectConfig() as never, root);
