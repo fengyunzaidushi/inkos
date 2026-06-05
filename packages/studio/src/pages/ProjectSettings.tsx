@@ -4,6 +4,18 @@ import { fetchJson, putApi, useApi } from "../hooks/use-api";
 import type { Theme } from "../hooks/use-theme";
 import type { TFunction } from "../hooks/use-i18n";
 import { useColors } from "../hooks/use-colors";
+import {
+  buildDetectionConfig,
+  buildNotifyChannel,
+  DEFAULT_DETECTION,
+  detectionDraftFromConfig,
+  notifyDraftFromChannel,
+  NOTIFY_TYPES,
+  type DetectionDraft,
+  type NotifyChannelDraft,
+  type NotifyType,
+  type OverrideRow,
+} from "./project-settings-model";
 
 interface Nav {
   toDashboard: () => void;
@@ -11,59 +23,6 @@ interface Nav {
 }
 
 type NoticeTone = "success" | "error" | "info";
-
-type NotifyType = "telegram" | "wechat-work" | "feishu" | "webhook";
-
-interface NotifyChannelDraft {
-  type: NotifyType;
-  botToken?: string;
-  chatId?: string;
-  webhookUrl?: string;
-  url?: string;
-  secret?: string;
-}
-
-interface OverrideRow {
-  agent: string;
-  model: string;
-  // Preserve advanced object-form fields (provider/baseUrl/apiKeyEnv/stream) we
-  // don't surface as editable, so a structured edit never drops them.
-  rest?: Record<string, unknown>;
-}
-
-interface DetectionDraft {
-  enabled: boolean;
-  provider: string;
-  apiUrl: string;
-  apiKeyEnv: string;
-  threshold: number;
-  autoRewrite: boolean;
-  maxRetries: number;
-}
-
-const DEFAULT_DETECTION: DetectionDraft = {
-  enabled: false,
-  provider: "custom",
-  apiUrl: "",
-  apiKeyEnv: "",
-  threshold: 0.5,
-  autoRewrite: false,
-  maxRetries: 3,
-};
-
-const NOTIFY_TYPES: ReadonlyArray<{ value: NotifyType; label: string }> = [
-  { value: "telegram", label: "Telegram" },
-  { value: "feishu", label: "飞书 Feishu" },
-  { value: "wechat-work", label: "企业微信" },
-  { value: "webhook", label: "Webhook" },
-];
-
-function buildNotifyChannel(d: NotifyChannelDraft): Record<string, unknown> {
-  if (d.type === "telegram") return { type: "telegram", botToken: d.botToken ?? "", chatId: d.chatId ?? "" };
-  if (d.type === "wechat-work") return { type: "wechat-work", webhookUrl: d.webhookUrl ?? "" };
-  if (d.type === "feishu") return { type: "feishu", webhookUrl: d.webhookUrl ?? "" };
-  return { type: "webhook", url: d.url ?? "", ...(d.secret ? { secret: d.secret } : {}), events: [] };
-}
 
 // Smooth open/close via grid-template-rows (same trick as the sidebar).
 function Collapse({ open, children }: { open: boolean; children: React.ReactNode }) {
@@ -129,13 +88,12 @@ export function ProjectSettings({ nav, theme, t }: { nav: Nav; theme: Theme; t: 
 
   useEffect(() => {
     if (!notifyData) return;
-    setNotifyChannels((notifyData.channels ?? []).map((ch) => ({ ...(ch as object) }) as NotifyChannelDraft));
+    setNotifyChannels((notifyData.channels ?? []).map(notifyDraftFromChannel));
   }, [notifyData]);
 
   useEffect(() => {
     if (!detectionData) return;
-    const d = detectionData.detection as Partial<DetectionDraft> | null;
-    setDet(d ? { ...DEFAULT_DETECTION, ...d, enabled: true } : { ...DEFAULT_DETECTION });
+    setDet(detectionDraftFromConfig(detectionData.detection));
   }, [detectionData]);
 
   const runSave = async (key: string, work: () => Promise<void>, success: string) => {
@@ -376,19 +334,7 @@ export function ProjectSettings({ nav, theme, t }: { nav: Nav; theme: Theme; t: 
         </Collapse>
         <button
           onClick={() => runSave("detection", async () => {
-            const payload = det.enabled
-              ? {
-                  detection: {
-                    provider: det.provider,
-                    apiUrl: det.apiUrl,
-                    apiKeyEnv: det.apiKeyEnv,
-                    threshold: det.threshold,
-                    enabled: true,
-                    autoRewrite: det.autoRewrite,
-                    maxRetries: det.maxRetries,
-                  },
-                }
-              : { detection: null };
+            const payload = { detection: buildDetectionConfig(det) };
             await fetchJson("/project/detection", {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
