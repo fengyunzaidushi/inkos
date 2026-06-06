@@ -187,6 +187,7 @@ export async function runChapterReviewCycle(params: {
       passed: (hasBlockedWords || hasPostWriteCritical) ? false : llmAudit.passed,
       issues: allIssues,
       summary: llmAudit.summary,
+      parseFailed: llmAudit.parseFailed,
       overallScore: llmAudit.overallScore,
     };
 
@@ -216,6 +217,23 @@ export async function runChapterReviewCycle(params: {
 
   let currentAudit = initial;
   let postReviseCount = 0;
+
+  if (initial.auditResult.parseFailed) {
+    params.logWarn({
+      zh: "审稿输出解析失败，跳过自动修稿以避免误改正文",
+      en: "Audit output parsing failed; skipping automatic repair to avoid rewriting valid prose from an unreliable audit.",
+    });
+    return {
+      finalContent,
+      finalWordCount,
+      preAuditNormalizedWordCount: finalWordCount,
+      revised: false,
+      auditResult: initial.auditResult,
+      totalUsage,
+      postReviseCount,
+      normalizeApplied,
+    };
+  }
 
   if (!isPassed(initial)) {
     for (let iteration = 0; iteration < maxReviewIterations; iteration++) {

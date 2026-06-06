@@ -101,6 +101,56 @@ describe("runChapterReviewCycle v9", () => {
     expect(reviseChapter.mock.calls[0]?.[4]).toBe("auto");
   });
 
+  it("does not auto-revise when audit output parsing failed", async () => {
+    const originalContent = "b".repeat(200);
+    const auditChapter = vi.fn().mockResolvedValue(createAuditResult({
+      passed: false,
+      overallScore: 0,
+      parseFailed: true,
+      summary: "审稿输出解析失败",
+      issues: [{
+        severity: "critical",
+        category: "系统错误",
+        description: "审稿输出格式异常，无法解析为 JSON",
+        suggestion: "检查模型输出格式",
+      }],
+    }));
+    const reviseChapter = vi.fn().mockResolvedValue({
+      revisedContent: "a".repeat(200),
+      wordCount: 200,
+      fixedIssues: ["should not run"],
+      updatedState: "",
+      updatedLedger: "",
+      updatedHooks: "",
+      tokenUsage: ZERO_USAGE,
+    });
+    const normalizeDraftLengthIfNeeded = vi.fn()
+      .mockImplementation(async (content: string) => ({
+        content,
+        wordCount: content.length,
+        applied: false,
+        tokenUsage: ZERO_USAGE,
+      }));
+
+    const result = await runChapterReviewCycle({
+      ...baseParams,
+      initialOutput: {
+        content: originalContent,
+        wordCount: originalContent.length,
+        postWriteErrors: [],
+      },
+      createReviser: () => ({ reviseChapter }),
+      auditor: { auditChapter },
+      normalizeDraftLengthIfNeeded,
+      maxReviewIterations: 1,
+    });
+
+    expect(reviseChapter).not.toHaveBeenCalled();
+    expect(result.finalContent).toBe(originalContent);
+    expect(result.revised).toBe(false);
+    expect(result.auditResult.parseFailed).toBe(true);
+  });
+
   it("runs repair loop when score is below threshold, picks best version", async () => {
     const auditChapter = vi.fn()
       .mockResolvedValueOnce(createAuditResult({
