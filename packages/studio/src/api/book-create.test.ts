@@ -55,20 +55,31 @@ describe("buildStudioBookConfig", () => {
 
 describe("waitForStudioBookReady", () => {
   it("retries until the created book becomes readable", async () => {
-    const fetchImpl = vi
-      .fn<typeof fetch>()
-      .mockResolvedValueOnce(new Response(JSON.stringify({ error: "Book not found" }), {
-        status: 404,
-        headers: { "Content-Type": "application/json" },
-      }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
+    let bookDetailCalls = 0;
+    const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith("/create-status")) {
+        return new Response(JSON.stringify({ error: "Book status not found" }), {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      bookDetailCalls += 1;
+      if (bookDetailCalls === 1) {
+        return new Response(JSON.stringify({ error: "Book not found" }), {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({
         book: { id: "new-book" },
         chapters: [],
         nextChapter: 1,
       }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
-      }));
+      });
+    });
     const wait = vi.fn(async () => {});
 
     const result = await waitForStudioBookReady("new-book", {
@@ -78,12 +89,55 @@ describe("waitForStudioBookReady", () => {
       retryDelayMs: 1,
     });
 
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(fetchImpl).toHaveBeenCalledTimes(4);
     expect(wait).toHaveBeenCalledTimes(1);
     expect(result).toMatchObject({
       book: { id: "new-book" },
       nextChapter: 1,
     });
+  });
+
+  it("waits on create-status while async LLM book creation is still running", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockImplementation(async (input) => {
+        const url = String(input);
+        if (url.endsWith("/create-status")) {
+          const statusCall = fetchImpl.mock.calls.filter(([called]) => String(called).endsWith("/create-status")).length;
+          return new Response(JSON.stringify({ status: statusCall < 3 ? "creating" : "ready" }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+        if (url.endsWith("/books/new-book")) {
+          return new Response(JSON.stringify({
+            book: { id: "new-book" },
+            chapters: [],
+            nextChapter: 1,
+          }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+        return new Response(JSON.stringify({ error: "unexpected" }), { status: 500 });
+      });
+    const wait = vi.fn(async () => {});
+
+    const result = await waitForStudioBookReady("new-book", {
+      fetchImpl,
+      wait,
+      maxAttempts: 4,
+      retryDelayMs: 1,
+    });
+
+    expect(wait).toHaveBeenCalledTimes(2);
+    expect(result.book.id).toBe("new-book");
+    expect(fetchImpl.mock.calls.map(([url]) => String(url))).toEqual([
+      "/api/v1/books/new-book/create-status",
+      "/api/v1/books/new-book/create-status",
+      "/api/v1/books/new-book/create-status",
+      "/api/v1/books/new-book",
+    ]);
   });
 
   it("throws a clear error when the book never becomes readable", async () => {

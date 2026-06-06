@@ -4,6 +4,11 @@ export interface StudioBookDetail {
   readonly nextChapter: number;
 }
 
+interface StudioBookCreateStatus {
+  readonly status?: string;
+  readonly error?: string;
+}
+
 export interface WaitForStudioBookReadyOptions {
   readonly fetchImpl?: typeof fetch;
   readonly wait?: (delayMs: number) => Promise<void>;
@@ -21,11 +26,27 @@ export async function waitForStudioBookReady(
 ): Promise<StudioBookDetail> {
   const fetchImpl = options.fetchImpl ?? fetch;
   const wait = options.wait ?? defaultWait;
-  const maxAttempts = options.maxAttempts ?? 5;
-  const retryDelayMs = options.retryDelayMs ?? 150;
+  const maxAttempts = options.maxAttempts ?? 120;
+  const retryDelayMs = options.retryDelayMs ?? 1000;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    const response = await fetchImpl(`/api/v1/books/${encodeURIComponent(bookId)}`);
+    const encodedBookId = encodeURIComponent(bookId);
+    const statusResponse = await fetchImpl(`/api/v1/books/${encodedBookId}/create-status`);
+    if (statusResponse.ok) {
+      const status = await statusResponse.json() as StudioBookCreateStatus;
+      if (status.status === "error") {
+        throw new Error(status.error || `Book "${bookId}" creation failed.`);
+      }
+      if (status.status === "creating") {
+        if (attempt < maxAttempts) {
+          await wait(retryDelayMs);
+          continue;
+        }
+        break;
+      }
+    }
+
+    const response = await fetchImpl(`/api/v1/books/${encodedBookId}`);
     if (response.ok) {
       return await response.json() as StudioBookDetail;
     }
