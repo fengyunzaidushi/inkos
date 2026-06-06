@@ -193,6 +193,13 @@ describe("pickProjectChatSessionId", () => {
     ])).toBe("short-fiction-session");
   });
 
+  it("can restore the latest non-chat project session after refresh", () => {
+    expect(pickProjectChatSessionId([
+      { sessionId: "play-session", sessionKind: "play", messageCount: 4 },
+      { sessionId: "old-chat-session", sessionKind: "chat", messageCount: 9 },
+    ])).toBe("play-session");
+  });
+
   it("falls back to the newest empty session when all sessions are empty", () => {
     expect(pickProjectChatSessionId([
       { sessionId: "empty-latest", messageCount: 0 },

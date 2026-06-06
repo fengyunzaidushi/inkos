@@ -107,8 +107,13 @@ export function pickModelSelection(
 export function pickProjectChatSessionId(
   sessions: ReadonlyArray<ChatPageSessionSummary>,
 ): string | null {
-  const chatSessions = sessions.filter((session) => !session.sessionKind || session.sessionKind === "chat");
-  return chatSessions.find((session) => session.messageCount > 0)?.sessionId
-    ?? chatSessions[0]?.sessionId
+  const projectSurfaceSessions = sessions.filter((session) =>
+    !session.sessionKind
+    || session.sessionKind === "chat"
+    || session.sessionKind === "short"
+    || session.sessionKind === "play"
+  );
+  return projectSurfaceSessions.find((session) => session.messageCount > 0)?.sessionId
+    ?? projectSurfaceSessions[0]?.sessionId
     ?? null;
 }
