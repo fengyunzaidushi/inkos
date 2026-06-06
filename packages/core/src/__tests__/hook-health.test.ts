@@ -55,9 +55,9 @@ describe("analyzeHookHealth", () => {
       language: "zh",
       chapterNumber: 1,
       hooks: [
-        createHook({ hookId: "H001", status: "未开启", lastAdvancedChapter: 0 }),
-        createHook({ hookId: "H002", status: "待推进", lastAdvancedChapter: 0 }),
-        createHook({ hookId: "H003", status: "dormant", lastAdvancedChapter: 0 }),
+        createHook({ hookId: "H001", status: "未开启" as any, lastAdvancedChapter: 0 }),
+        createHook({ hookId: "H002", status: "待推进" as any, lastAdvancedChapter: 0 }),
+        createHook({ hookId: "H003", status: "dormant" as any, lastAdvancedChapter: 0 }),
       ],
       maxActiveHooks: 1,
     });
