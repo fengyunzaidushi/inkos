@@ -272,12 +272,12 @@ export function Sidebar({ nav, activePage, sse, t }: {
       <div className="px-6 py-8">
         <button
           onClick={nav.toDashboard}
-          className="group flex items-center gap-2 hover:opacity-80 transition-all duration-300"
+          className="group flex items-center gap-3 hover:opacity-80 transition-all duration-300"
         >
-          <InkosLogo className="w-8 h-8 shrink-0 group-hover:scale-105 transition-transform" />
+          <InkosLogo className="w-11 h-11 shrink-0 group-hover:scale-105 transition-transform" />
           <div className="flex flex-col">
-            <span className="font-serif text-xl leading-none italic font-medium">InkOS</span>
-            <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-bold mt-1">Studio</span>
+            <span className="font-serif text-[27px] leading-none italic font-medium">InkOS</span>
+            <span className="text-[13px] uppercase tracking-[0.22em] text-muted-foreground font-bold mt-1.5">Studio</span>
           </div>
         </button>
       </div>
@@ -286,20 +286,20 @@ export function Sidebar({ nav, activePage, sse, t }: {
       <div className="flex-1 overflow-y-auto px-4 py-2 space-y-6">
         {/* InkOS Create Section — always visible, two columns × four rows */}
         <div>
-          <div className="px-3 mb-2">
-            <span className="text-[11px] uppercase tracking-widest text-muted-foreground font-bold">
+          <div className="px-3 mb-2.5">
+            <span className="text-[16px] leading-6 uppercase tracking-[0.1em] text-muted-foreground font-bold">
               {t("nav.createSection")}
             </span>
           </div>
           <div className="grid grid-cols-2 gap-1">
-            <CreateItem icon={<BookPlus size={14} />} label={t("nav.createNovel")} active={activePage === "book-create"} onClick={handleOpenBookCreate} />
-            <CreateItem icon={<ScrollText size={14} />} label={t("nav.createShort")} onClick={() => launchProjectMode("short")} />
-            <CreateItem icon={<Feather size={14} />} label={t("nav.createFanfic")} onClick={() => nav.toImport("fanfic")} />
-            <CreateItem icon={<BookCopy size={14} />} label={t("nav.createSpinoff")} onClick={() => nav.toImport("spinoff")} />
-            <CreateItem icon={<Wand2 size={14} />} label={t("nav.createImitation")} onClick={() => nav.toImport("imitation")} />
-            <CreateItem icon={<FileInput size={14} />} label={t("nav.createContinuation")} onClick={() => nav.toImport("chapters")} />
-            <CreateItem icon={<GitBranch size={14} />} label={t("nav.createBranching")} onClick={() => launchProjectMode("play", "guided")} />
-            <CreateItem icon={<Gamepad2 size={14} />} label={t("nav.createFree")} onClick={() => launchProjectMode("play", "open")} />
+            <CreateItem icon={<BookPlus size={16} />} label={t("nav.createNovel")} active={activePage === "book-create"} onClick={handleOpenBookCreate} />
+            <CreateItem icon={<ScrollText size={16} />} label={t("nav.createShort")} onClick={() => launchProjectMode("short")} />
+            <CreateItem icon={<Feather size={16} />} label={t("nav.createFanfic")} onClick={() => nav.toImport("fanfic")} />
+            <CreateItem icon={<BookCopy size={16} />} label={t("nav.createSpinoff")} onClick={() => nav.toImport("spinoff")} />
+            <CreateItem icon={<Wand2 size={16} />} label={t("nav.createImitation")} onClick={() => nav.toImport("imitation")} />
+            <CreateItem icon={<FileInput size={16} />} label={t("nav.createContinuation")} onClick={() => nav.toImport("chapters")} />
+            <CreateItem icon={<GitBranch size={16} />} label={t("nav.createBranching")} onClick={() => launchProjectMode("play", "guided")} />
+            <CreateItem icon={<Gamepad2 size={16} />} label={t("nav.createFree")} onClick={() => launchProjectMode("play", "open")} />
           </div>
         </div>
 
@@ -330,7 +330,7 @@ export function Sidebar({ nav, activePage, sse, t }: {
                     <button
                       type="button"
                       onClick={() => openBook(book.id)}
-                      className={`flex min-w-0 flex-1 items-center gap-1.5 py-1.5 pr-2 rounded-md text-sm transition-colors ${
+                      className={`flex min-w-0 flex-1 items-center gap-1.5 py-1.5 pr-2 rounded-md text-[15px] leading-6 transition-colors ${
                         isActiveBook ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-secondary/30"
                       }`}
                     >
@@ -353,7 +353,7 @@ export function Sidebar({ nav, activePage, sse, t }: {
                             <button
                               type="button"
                               onClick={() => openSession(book.id, session.sessionId)}
-                              className="flex min-w-0 flex-1 items-center gap-2 pl-9 pr-2 py-1 text-left text-[13px] transition-colors"
+                              className="flex min-w-0 flex-1 items-center gap-2 pl-9 pr-2 py-1.5 text-left text-[14px] leading-5 transition-colors"
                             >
                               <span className={`truncate flex-1 ${isActiveSession ? "text-foreground" : "text-muted-foreground group-hover/session:text-foreground"}`}>
                                 {label}
@@ -397,7 +397,7 @@ export function Sidebar({ nav, activePage, sse, t }: {
                       <button
                         type="button"
                         onClick={() => void handleCreateSession(book.id)}
-                        className="w-full flex items-center gap-2 pl-9 pr-2 py-1 text-xs text-muted-foreground/50 hover:text-foreground transition-colors"
+                        className="w-full flex items-center gap-2 pl-9 pr-2 py-1.5 text-[13px] text-muted-foreground/50 hover:text-foreground transition-colors"
                       >
                         <Plus size={12} />
                         <span>新建会话</span>
@@ -448,7 +448,7 @@ export function Sidebar({ nav, activePage, sse, t }: {
                         <button
                           type="button"
                           onClick={() => openProjectChatSession(session.sessionId)}
-                          className="flex min-w-0 flex-1 items-center gap-2 pl-2 pr-2 py-1 text-left text-[13px] transition-colors"
+                          className="flex min-w-0 flex-1 items-center gap-2 pl-2 pr-2 py-1.5 text-left text-[14px] leading-5 transition-colors"
                         >
                           <SessionKindIcon
                             kind={session.sessionKind}
@@ -496,7 +496,7 @@ export function Sidebar({ nav, activePage, sse, t }: {
                   <button
                     type="button"
                     onClick={handleCreateProjectChatSession}
-                    className="w-full flex items-center gap-2 pl-2 pr-2 py-1 text-xs text-muted-foreground/50 hover:text-foreground transition-colors"
+                    className="w-full flex items-center gap-2 pl-2 pr-2 py-1.5 text-[13px] text-muted-foreground/50 hover:text-foreground transition-colors"
                   >
                     <Plus size={12} />
                     <span>新建会话</span>
@@ -710,13 +710,13 @@ function SectionHeader({ label, expanded, onToggle }: {
     <button
       type="button"
       onClick={onToggle}
-      className="group flex w-full items-center gap-1.5 px-3 py-1 text-left"
+      className="group flex w-full items-center gap-1.5 px-3 py-2 text-left"
     >
-      <span className="flex-1 text-[11px] uppercase tracking-widest text-muted-foreground font-bold group-hover:text-foreground transition-colors">
+      <span className="flex-1 text-[16px] leading-6 uppercase tracking-[0.1em] text-muted-foreground font-bold group-hover:text-foreground transition-colors">
         {label}
       </span>
       <ChevronRight
-        size={12}
+        size={15}
         className={`text-muted-foreground/50 transition-transform duration-200 ${expanded ? "rotate-90" : ""}`}
       />
     </button>
@@ -733,7 +733,7 @@ function CreateItem({ icon, label, active, onClick }: {
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-w-0 items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs transition-all ${
+      className={`flex min-w-0 items-center gap-2 rounded-lg px-2.5 py-2.5 text-left text-[16px] leading-6 transition-all ${
         active
           ? "border border-border bg-secondary text-foreground font-medium shadow-sm"
           : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"

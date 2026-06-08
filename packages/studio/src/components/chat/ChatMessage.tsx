@@ -24,9 +24,9 @@ export function ChatMessage({
     <Message from={role}>
       <MessageContent>
         {isUser ? (
-          <div className="text-sm leading-relaxed">{content}</div>
+          <div className="text-[17px] leading-[1.72]">{content}</div>
         ) : isError ? (
-          <div className="flex items-center gap-2 text-sm text-destructive">
+          <div className="flex items-center gap-2 text-[17px] leading-[1.72] text-destructive">
             <XCircle size={14} className="shrink-0" />
             <span>{content.replace(/^\u2717\s*/, "")}</span>
           </div>

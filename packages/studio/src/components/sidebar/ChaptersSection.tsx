@@ -37,7 +37,7 @@ export function ChaptersSection({ bookId, isZh }: ChaptersSectionProps) {
   return (
     <SidebarCard title={isZh ? "章节" : "Chapters"}>
       {chapters.length === 0 ? (
-        <p className="text-xs text-muted-foreground/50 italic">
+        <p className="text-[15px] leading-6 text-muted-foreground/50 italic">
           {isZh ? "暂无章节" : "No chapters"}
         </p>
       ) : (
@@ -48,12 +48,12 @@ export function ChaptersSection({ bookId, isZh }: ChaptersSectionProps) {
               <li
                 key={`${ch.number}-${ch.title ?? ""}`}
                 onClick={() => useChatStore.getState().openChapterArtifact(ch.number)}
-                className="flex items-center gap-2 py-0.5 text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors rounded px-1 -mx-1 hover:bg-secondary/50">
-                <span className={cn("text-[10px] shrink-0", ind.color)}>{ind.symbol}</span>
+                className="flex items-center gap-2 py-1 text-[15px] leading-6 text-muted-foreground cursor-pointer hover:text-foreground transition-colors rounded px-1 -mx-1 hover:bg-secondary/50">
+                <span className={cn("text-[13px] shrink-0", ind.color)}>{ind.symbol}</span>
                 <span className="truncate flex-1">
                   {String(ch.number).padStart(2, "0")} {ch.title || (isZh ? `第${ch.number}章` : `Chapter ${ch.number}`)}
                 </span>
-                <span className="tabular-nums text-[10px] text-muted-foreground/50 shrink-0">
+                <span className="tabular-nums text-[13px] text-muted-foreground/50 shrink-0">
                   {(ch.wordCount ?? 0).toLocaleString()}
                 </span>
               </li>

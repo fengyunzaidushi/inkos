@@ -6,8 +6,8 @@ const strings = {
   // Header
   "nav.books": { zh: "书籍", en: "Books" },
   "nav.newBook": { zh: "新建书籍", en: "New Book" },
-  "nav.createSection": { zh: "InkOS 创作", en: "InkOS Create" },
-  "nav.myBooks": { zh: "我的书架", en: "My Bookshelf" },
+  "nav.createSection": { zh: "开始创作", en: "Start Creating" },
+  "nav.myBooks": { zh: "我的创作", en: "My Works" },
   "nav.createNovel": { zh: "长篇小说", en: "Long Novel" },
   "nav.createShort": { zh: "短篇小说", en: "Short Story" },
   "nav.createPlay": { zh: "InkOS 互动", en: "InkOS Play" },

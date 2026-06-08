@@ -67,11 +67,11 @@ function RoleEntry({ role }: { readonly role: RoleRef }) {
       onClick={() => openArtifact(role.path)}
       className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors text-left"
     >
-      <Users size={14} className="shrink-0 text-muted-foreground/60" />
-      <span className="text-sm font-medium text-foreground font-['SimSun','Songti_SC','STSong',serif] flex-1 truncate">
+      <Users size={16} className="shrink-0 text-muted-foreground/60" />
+      <span className="text-[15px] leading-6 font-medium text-foreground font-['SimSun','Songti_SC','STSong',serif] flex-1 truncate">
         {role.name}
       </span>
-      <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full shrink-0", badge.color)}>
+      <span className={cn("text-[12px] px-1.5 py-0.5 rounded-full shrink-0", badge.color)}>
         {badge.label}
       </span>
     </button>
@@ -90,29 +90,29 @@ function CharacterCard({ char }: { readonly char: CharacterInfo }) {
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center gap-2 px-2.5 py-2 text-left"
       >
-        <Users size={14} className="shrink-0 text-muted-foreground/60" />
-        <span className="text-sm font-medium text-foreground font-['SimSun','Songti_SC','STSong',serif] flex-1 truncate">
+        <Users size={16} className="shrink-0 text-muted-foreground/60" />
+        <span className="text-[15px] leading-6 font-medium text-foreground font-['SimSun','Songti_SC','STSong',serif] flex-1 truncate">
           {char.name}
         </span>
         {role && (
-          <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full shrink-0", getRoleColor(role))}>
+          <span className={cn("text-[12px] px-1.5 py-0.5 rounded-full shrink-0", getRoleColor(role))}>
             {role.split("/")[0].trim()}
           </span>
         )}
-        <ChevronDown size={12} className={cn("text-muted-foreground/50 transition-transform shrink-0", expanded && "rotate-180")} />
+        <ChevronDown size={14} className={cn("text-muted-foreground/50 transition-transform shrink-0", expanded && "rotate-180")} />
       </button>
       {expanded && (
         <div className="px-2.5 pb-2.5 space-y-1">
           {tags && (
-            <p className="text-xs text-muted-foreground"><span className="text-muted-foreground/60">标签</span> {tags}</p>
+            <p className="text-[14px] leading-6 text-muted-foreground"><span className="text-muted-foreground/60">标签</span> {tags}</p>
           )}
           {current && (
-            <p className="text-xs text-muted-foreground"><span className="text-muted-foreground/60">当前</span> {current}</p>
+            <p className="text-[14px] leading-6 text-muted-foreground"><span className="text-muted-foreground/60">当前</span> {current}</p>
           )}
           {Object.entries(char.fields)
             .filter(([k]) => !["定位", "Role", "标签", "Tags", "当前", "Current"].includes(k))
             .map(([key, val]) => (
-              <p key={key} className="text-xs text-muted-foreground">
+              <p key={key} className="text-[14px] leading-6 text-muted-foreground">
                 <span className="text-muted-foreground/60">{key}</span> {val}
               </p>
             ))}

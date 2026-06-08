@@ -595,6 +595,35 @@ function validateAgentActionExecution(args: {
   return undefined;
 }
 
+type AgentFailureKind = "llm" | "internal" | "unknown";
+
+function classifyAgentFailure(message: string): AgentFailureKind {
+  const text = message.trim();
+  if (!text) return "unknown";
+  if (
+    /API\s*返回|上游|upstream|Bad Gateway|temporarily unavailable|rate limit|quota|API Key|unauthorized|forbidden|无法连接到 API|fetch failed|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|LLM returned empty response|Provider finish_reason|reasoning_content/i.test(text)
+  ) {
+    return "llm";
+  }
+  if (
+    /PlannerParseError|Architect output missing|required sections|missing YAML frontmatter|frontmatter delimiters|parseMemo|Book creation artifact is incomplete|Short-hit draft is incomplete|工具执行失败|执行失败|sub_agent|tool execution|RUNTIME_STATE_DELTA|JSON parse|解析失败/i.test(text)
+  ) {
+    return "internal";
+  }
+  return "unknown";
+}
+
+function formatAgentFailure(message: string): { readonly code: string; readonly message: string; readonly status: 500 | 502 } {
+  const kind = classifyAgentFailure(message);
+  if (kind === "llm") {
+    return { code: "AGENT_LLM_ERROR", message, status: 502 };
+  }
+  if (kind === "internal") {
+    return { code: "AGENT_INTERNAL_ERROR", message: `InkOS 内部流程错误：${message}`, status: 500 };
+  }
+  return { code: "AGENT_ERROR", message, status: 500 };
+}
+
 interface CollectedToolExec {
   id: string;
   tool: string;
@@ -3780,10 +3809,11 @@ export function createStudioServer(initialConfig: ProjectConfig, root: string) {
           if (resolveCreatedBookIdFromToolExecs(collectedToolExecs)) {
             await finalizeCreatedBook();
           }
+          const failure = formatAgentFailure(result.errorMessage);
           return c.json({
-            error: { code: "AGENT_LLM_ERROR", message: result.errorMessage },
-            response: result.errorMessage,
-          }, 502);
+            error: { code: failure.code, message: failure.message },
+            response: failure.message,
+          }, failure.status);
         }
 
         const actionExecutionError = validateAgentActionExecution({
@@ -3856,9 +3886,10 @@ export function createStudioServer(initialConfig: ProjectConfig, root: string) {
         }, 429);
       }
 
+      const failure = formatAgentFailure(msg);
       return c.json(
-        { error: { code: "AGENT_ERROR", message: msg } },
-        500,
+        { error: { code: failure.code, message: failure.message } },
+        failure.status,
       );
     }
   });

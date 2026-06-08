@@ -15,16 +15,16 @@ import {
   resolveCoverGenerationRequest,
 } from "../pipeline/short-fiction-runner.js";
 
-/** Per-type framing so an actor reads as a portrait, an item as a still, etc. */
+/** Per-type task framing only; visual style must come from the world / visual contract. */
 const SHOT_BY_TYPE: Record<string, string> = {
-  actor: "为这个角色画一张半身肖像",
-  location: "为这个地点画一张环境立绘",
-  item: "为这件物品画一张静物特写（中性背景）",
-  evidence: "为这件证物画一张特写",
-  clue: "为这条线索画一张特写",
-  claim: "为这个主张画一张示意特写",
-  proof_chain: "为这条证据链画一张示意图",
-  organization: "为这个组织画一张代表性图像（标志或场所）",
+  actor: "为这个角色生成配图",
+  location: "为这个地点生成配图",
+  item: "为这件物品生成配图",
+  evidence: "为这件证物生成配图",
+  clue: "为这条线索生成配图",
+  claim: "为这个主张生成配图",
+  proof_chain: "为这条证据链生成配图",
+  organization: "为这个组织生成配图",
 };
 
 function clamp(text: string, max: number): string {
@@ -66,14 +66,13 @@ export function buildPlayEntityImagePrompt(
   worldPremise?: PlayImageWorldInput,
 ): string {
   const worldContext = renderImageWorldContext(worldPremise);
-  const subject = SHOT_BY_TYPE[entity.type] ?? "为这个对象画一张贴合世界设定的概念图";
+  const subject = SHOT_BY_TYPE[entity.type] ?? "为这个对象生成配图";
   const summary = entity.summary?.trim();
   return [
     worldContext,
     subject,
     `对象：${entity.label}`,
     summary ? `细节：${clamp(summary, 400)}` : "",
-    "要求：写实或半写实，单一主体清晰，构图聚焦，无任何文字、水印或多格拼贴。",
   ].filter(Boolean).join("\n");
 }
 
@@ -82,9 +81,8 @@ export function buildPlaySceneImagePrompt(sceneText: string, worldPremise?: Play
   const worldContext = renderImageWorldContext(worldPremise);
   return [
     worldContext,
-    "为下面这一刻画一张电影感的横构图插画，捕捉当下的动作、氛围与情绪：",
+    "为下面这一刻生成配图，捕捉当下的动作、氛围与情绪：",
     clamp(sceneText, 900),
-    "要求：写实或半写实，重氛围与光影，无任何文字、水印或多格拼贴。",
   ].filter(Boolean).join("\n");
 }
 

@@ -14,34 +14,39 @@ import {
 } from "../play/play-image.js";
 
 describe("play image prompts", () => {
-  it("frames an actor as a portrait and anchors it to the world premise", () => {
+  it("frames an actor as an entity image and anchors it to the world premise without forcing a style", () => {
     const prompt = buildPlayEntityImagePrompt(
       { type: "actor", label: "林深", summary: "急诊科医生，能读濒死者的记忆" },
       "都市超自然：触碰濒死者会读到对方一段记忆，代价是丢失自己的记忆。",
     );
-    expect(prompt).toContain("半身肖像");
+    expect(prompt).toContain("为这个角色生成配图");
     expect(prompt).toContain("林深");
     expect(prompt).toContain("世界设定");
     expect(prompt).toContain("急诊科医生");
-    expect(prompt).toContain("无任何文字"); // no-text/watermark guard
+    expect(prompt).not.toContain("写实或半写实");
+    expect(prompt).not.toContain("不添加文字");
+    expect(prompt).not.toContain("水印");
+    expect(prompt).not.toContain("拼贴");
   });
 
-  it("frames an item as a neutral-background still", () => {
+  it("frames an item without assuming a neutral-background still", () => {
     const prompt = buildPlayEntityImagePrompt({ type: "item", label: "红线手环" });
-    expect(prompt).toContain("静物特写");
+    expect(prompt).toContain("为这件物品生成配图");
     expect(prompt).toContain("红线手环");
+    expect(prompt).not.toContain("中性背景");
   });
 
   it("falls back to a generic concept frame for unknown entity types", () => {
     const prompt = buildPlayEntityImagePrompt({ type: "rule", label: "记忆债规则" });
     expect(prompt).toContain("记忆债规则");
-    expect(prompt).toContain("贴合世界设定");
+    expect(prompt).toContain("为这个对象生成配图");
   });
 
-  it("builds a wide cinematic prompt for a moment from its scene prose", () => {
+  it("builds a moment prompt from scene prose without forcing cinematic wide framing", () => {
     const prompt = buildPlaySceneImagePrompt("雨夜，她站在便利店门口，没有抬头。", "情感悬疑");
-    expect(prompt).toContain("横构图");
     expect(prompt).toContain("便利店门口");
+    expect(prompt).not.toContain("电影感");
+    expect(prompt).not.toContain("横构图");
   });
 
   it("includes user-defined world and visual contracts without assuming RPG tiers", () => {

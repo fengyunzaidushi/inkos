@@ -57,7 +57,7 @@ function renderTruthBody(
   if (file === "current_state.md") {
     const { isEmpty, body: stateBody } = presentCurrentState(content);
     return isEmpty ? (
-      <p className="text-sm text-muted-foreground/60 italic">
+      <p className="text-[14px] leading-6 text-muted-foreground/60 italic">
         还没有运行状态。开始写作后，每写完一章这里会自动记录最新的故事进展。
       </p>
     ) : (
@@ -66,7 +66,7 @@ function renderTruthBody(
   }
   if (file === "emotional_arcs.md" && !hasTableRows(content)) {
     return (
-      <p className="text-sm text-muted-foreground/60 italic">
+      <p className="text-[14px] leading-6 text-muted-foreground/60 italic">
         还没有情感弧线记录。开始写作后，这里会记录角色在各章的情绪变化。
       </p>
     );
@@ -161,7 +161,7 @@ function ArtifactView({ bookId }: { readonly bookId: string }) {
         >
           <ArrowLeft size={14} />
         </button>
-        <span className="text-sm font-medium truncate flex-1">{label}</span>
+        <span className="text-[15px] leading-6 font-medium truncate flex-1">{label}</span>
         {!loading && content !== null && !editing && (
           <button
             onClick={handleEdit}
@@ -194,15 +194,15 @@ function ArtifactView({ bookId }: { readonly bookId: string }) {
             <Loader2 size={16} className="text-muted-foreground animate-spin" />
           </div>
         ) : content === null ? (
-          <p className="text-xs text-muted-foreground/50 italic px-4 py-3">文件不存在</p>
+          <p className="text-[14px] leading-6 text-muted-foreground/50 italic px-4 py-3">文件不存在</p>
         ) : editing ? (
           <textarea
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
-            className="w-full h-full min-h-[300px] bg-transparent text-sm leading-7 px-4 py-3 resize-none outline-none border-0 font-mono"
+            className="w-full h-full min-h-[300px] bg-transparent text-[15px] leading-7 px-4 py-3 resize-none outline-none border-0 font-mono"
           />
         ) : (
-          <div className="px-4 py-3 text-sm leading-7">
+          <div className="px-4 py-3 text-[15px] leading-7">
             {renderTruthBody(isChapter ? null : artifactFile, content, frontmatter, body)}
           </div>
         )}
@@ -245,7 +245,7 @@ function PanelView({ bookId, theme: _theme, t, sse }: BookSidebarProps) {
       {activeOp && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10">
           <Loader2 size={12} className="text-primary animate-spin shrink-0" />
-          <span className="text-xs text-primary font-medium">
+          <span className="text-[14px] leading-5 text-primary font-medium">
             {OP_LABELS[activeOp] ?? activeOp}
           </span>
         </div>
@@ -331,7 +331,7 @@ export function BookSidebarToggle({ bookId, theme, t, sse }: BookSidebarProps) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-3 py-2 border-b border-border/20">
-              <span className="text-xs font-medium text-muted-foreground">书籍信息</span>
+              <span className="text-[15px] leading-6 font-medium text-muted-foreground">书籍信息</span>
               <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
                 <PanelRightClose size={14} />
               </button>

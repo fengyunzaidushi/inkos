@@ -21,7 +21,7 @@ export function SidebarCard({ title, defaultOpen = true, children, actions }: Si
         <span className="text-base font-medium text-foreground font-['SimSun','Songti_SC','STSong',serif]">{title}</span>
         <div className="flex items-center gap-1.5">
           {actions}
-          <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", open && "rotate-180")} />
+          <ChevronDown className={cn("w-[18px] h-[18px] text-muted-foreground transition-transform", open && "rotate-180")} />
         </div>
       </button>
       {open && <div className="px-3 pb-3">{children}</div>}

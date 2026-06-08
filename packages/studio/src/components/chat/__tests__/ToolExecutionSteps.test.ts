@@ -172,6 +172,7 @@ describe("groupChronologically", () => {
         runId: "main",
         sceneText: "你翻开账本，发现一张旧船票。",
         suggestedActions: ["藏起船票", "追问来人"],
+        currentState: { turn: 3 },
       },
     });
 
@@ -180,6 +181,7 @@ describe("groupChronologically", () => {
       title: "雨夜茶馆",
       worldId: "rain-teahouse",
       runId: "main",
+      turn: 3,
       sceneText: "你翻开账本，发现一张旧船票。",
       suggestedActions: ["藏起船票", "追问来人"],
     });

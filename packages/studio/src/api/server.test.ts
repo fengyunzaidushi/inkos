@@ -3610,6 +3610,37 @@ describe("createStudioServer daemon lifecycle", () => {
     expect(chatCompletionMock).not.toHaveBeenCalled();
   });
 
+  it("classifies InkOS parser/tool errors as internal instead of blaming the selected provider", async () => {
+    const internalError = "sub_agent writer failed: missing YAML frontmatter delimiters";
+    runAgentSessionMock.mockResolvedValueOnce({
+      responseText: "",
+      errorMessage: internalError,
+      messages: [{ role: "assistant", content: [], stopReason: "error", errorMessage: internalError }],
+    });
+
+    const { createStudioServer } = await import("./server.js");
+    const app = createStudioServer(cloneProjectConfig() as never, root);
+
+    const response = await app.request("http://localhost/api/v1/agent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        instruction: "检查当前写作状态",
+        activeBookId: "demo-book",
+        sessionId: "agent-session-1",
+      }),
+    });
+
+    expect(response.status).toBe(500);
+    const json = await response.json() as { error: { code: string; message: string }; response: string };
+    expect(json.error.code).toBe("AGENT_INTERNAL_ERROR");
+    expect(json.error.message).toContain("InkOS 内部流程错误");
+    expect(json.error.message).toContain("missing YAML frontmatter delimiters");
+    expect(json.error.message).not.toMatch(/kkaiapi/i);
+    expect(json.response).toBe(json.error.message);
+    expect(chatCompletionMock).not.toHaveBeenCalled();
+  });
+
   it("does not replace an empty agent response with a second plain-chat call", async () => {
     runAgentSessionMock.mockResolvedValueOnce({
       responseText: "",

@@ -75,6 +75,7 @@ export interface ShortFictionCoverOptions {
   readonly intro?: string;
   readonly sellingPoints?: string | ReadonlyArray<string>;
   readonly coverPrompt?: string;
+  readonly promptMode?: CoverPromptMode;
   readonly outputDir?: string;
   readonly coverBaseUrl?: string;
   readonly coverEndpoint?: string;
@@ -89,6 +90,8 @@ export interface ShortFictionCoverResult {
   readonly coverPromptPath: string;
   readonly coverImagePath: string;
 }
+
+type CoverPromptMode = "short" | "generic";
 
 export async function runShortFictionProduction(
   options: ShortFictionRunOptions,
@@ -371,12 +374,14 @@ export async function generateShortFictionCover(
     rawContent: "",
   };
   const promptPath = join(outputDir, "cover-prompt.md");
-  await writeText(options.projectRoot, promptPath, buildCoverImagePrompt(salesPackage));
+  const imagePrompt = buildCoverImagePrompt(salesPackage, options.promptMode ?? "generic");
+  await writeText(options.projectRoot, promptPath, imagePrompt);
 
   const artifact = await generateCoverImageArtifact({
     root: options.projectRoot,
     outputDir,
     salesPackage,
+    promptMode: options.promptMode ?? "generic",
     coverBaseUrl: options.coverBaseUrl,
     coverEndpoint: options.coverEndpoint,
     coverModel: options.coverModel,
@@ -477,6 +482,7 @@ async function generateCoverImageArtifact(input: {
   readonly root: string;
   readonly outputDir: string;
   readonly salesPackage: ShortFictionSalesPackage;
+  readonly promptMode?: CoverPromptMode;
   readonly coverBaseUrl?: string;
   readonly coverEndpoint?: string;
   readonly coverModel?: string;
@@ -491,7 +497,7 @@ async function generateCoverImageArtifact(input: {
     coverApiKeyEnv: input.coverApiKeyEnv,
   });
   const size = input.coverSize || process.env.INKOS_COVER_SIZE || "1024x1360";
-  const { buffer, extension } = await generateImageFromPrompt(request, buildCoverImagePrompt(input.salesPackage), size);
+  const { buffer, extension } = await generateImageFromPrompt(request, buildCoverImagePrompt(input.salesPackage, input.promptMode ?? "short"), size);
   const coverPath = join(input.outputDir, extension === "jpg" ? "cover.jpg" : "cover.png");
   await writeBinary(input.root, coverPath, buffer);
   return { coverImagePath: projectPath(coverPath) };
@@ -807,13 +813,24 @@ function resolveCoverEndpoint(coverEndpoint?: string, coverBaseUrl?: string): st
   return `${baseUrl.replace(/\/+$/u, "")}/images/generations`;
 }
 
-function buildCoverImagePrompt(salesPackage: ShortFictionSalesPackage): string {
-  return [
-    "为中文商业短篇小说生成手机端平台书封，3:4竖图。",
-    `主标题：${salesPackage.title}`,
+function buildCoverImagePrompt(salesPackage: ShortFictionSalesPackage, mode: CoverPromptMode): string {
+  const base = [
+    `标题：${salesPackage.title}`,
     salesPackage.intro ? `简介：${salesPackage.intro}` : "",
     salesPackage.sellingPoints.length > 0 ? `卖点：${salesPackage.sellingPoints.join("；")}` : "",
-    salesPackage.coverPrompt ? `包装提示：${salesPackage.coverPrompt}` : "",
+    salesPackage.coverPrompt ? `用户视觉要求：${salesPackage.coverPrompt}` : "",
+  ].filter(Boolean);
+
+  if (mode === "generic") {
+    return [
+      "按用户给出的标题、简介、卖点和视觉要求生成封面图。",
+      ...base,
+    ].join("\n");
+  }
+
+  return [
+    "为中文商业短篇小说生成手机端平台书封，3:4竖图。",
+    ...base.map((line) => line.replace(/^标题：/u, "主标题：").replace(/^用户视觉要求：/u, "包装提示：")),
     "",
     "封面方向：平台短篇书封，不是电影海报。标题字要成为主视觉，预留两到四行大字排版区；人物近景或半身，表情有冷笑、震惊、崩溃、压迫或反杀感；道具少而大，一眼能看出冲突。",
     "颜色高对比、高饱和，适合手机列表缩略图。避免写实会议摄影、横版视频缩略图、杂志大片、小清新细字和长段文字。",

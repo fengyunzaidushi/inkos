@@ -12,9 +12,9 @@ export function FrontmatterCards({ cards }: FrontmatterCardsProps) {
     <div className="flex flex-col gap-1.5 mb-3">
       {cards.map((card) => (
         <div key={card.label} className="rounded-lg bg-secondary/30 px-3 py-2">
-          <div className="text-[11px] text-muted-foreground/60 mb-1">{card.label}</div>
+          <div className="text-[12px] leading-5 text-muted-foreground/60 mb-1">{card.label}</div>
           {card.values.length === 1 ? (
-            <div className="text-sm text-foreground font-['SimSun','Songti_SC','STSong',serif]">
+            <div className="text-[15px] leading-6 text-foreground font-['SimSun','Songti_SC','STSong',serif]">
               {card.values[0]}
             </div>
           ) : (
@@ -22,7 +22,7 @@ export function FrontmatterCards({ cards }: FrontmatterCardsProps) {
               {card.values.map((value, i) => (
                 <li
                   key={i}
-                  className="text-sm text-foreground flex gap-1.5 font-['SimSun','Songti_SC','STSong',serif]"
+                  className="text-[15px] leading-6 text-foreground flex gap-1.5 font-['SimSun','Songti_SC','STSong',serif]"
                 >
                   <span className="text-muted-foreground/40 shrink-0">·</span>
                   <span>{value}</span>

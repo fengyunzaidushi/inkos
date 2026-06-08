@@ -25,14 +25,14 @@ export function HoldingSlot(props: {
       )}
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5">
-          <span className="truncate text-[13px] font-semibold text-foreground">{row.label}</span>
+          <span className="truncate text-[15px] leading-6 font-semibold text-foreground">{row.label}</span>
           {row.isFresh ? (
-            <span className="shrink-0 rounded-full bg-emerald-500/20 px-1.5 text-[10px] font-medium text-emerald-300">
+            <span className="shrink-0 rounded-full bg-emerald-500/20 px-1.5 text-[12px] leading-5 font-medium text-emerald-300">
               {isZh ? "新" : "NEW"}
             </span>
           ) : null}
         </span>
-        <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+        <span className="mt-0.5 flex items-center gap-1.5 text-[14px] leading-6 text-muted-foreground">
           <span className="shrink-0">{kind}</span>
           {row.preview ? <span className="truncate">· {row.preview}</span> : null}
         </span>

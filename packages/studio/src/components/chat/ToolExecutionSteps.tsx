@@ -106,6 +106,8 @@ export interface PlayToolDetails {
   readonly title?: string;
   readonly worldId?: string;
   readonly runId?: string;
+  readonly turn?: number;
+  readonly sceneImageUrl?: string;
   readonly sceneText?: string;
   readonly suggestedActions?: readonly string[];
   readonly variantId?: string;
@@ -147,6 +149,12 @@ function booleanField(record: Record<string, unknown>, key: string): boolean | u
 function numberField(record: Record<string, unknown>, key: string): number | undefined {
   const value = record[key];
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function nestedNumberField(record: Record<string, unknown>, objectKey: string, key: string): number | undefined {
+  const value = record[objectKey];
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  return numberField(value as Record<string, unknown>, key);
 }
 
 function actionPayloadField(record: Record<string, unknown>): ChatActionPayload | undefined {
@@ -238,10 +246,83 @@ export function getPlayToolDetails(exec: ToolExecution): PlayToolDetails | null 
     title: stringField(record, "title"),
     worldId: stringField(record, "worldId"),
     runId: stringField(record, "runId"),
+    turn: numberField(record, "turn")
+      ?? nestedNumberField(record, "currentState", "turn")
+      ?? (record.kind === "play_world_started" ? 0 : undefined),
+    sceneImageUrl: stringField(record, "sceneImageUrl"),
     sceneText: stringField(record, "sceneText"),
     suggestedActions: suggested,
     variantId: stringField(record, "variantId"),
   };
+}
+
+function buildPlaySceneImageUrl(details: PlayToolDetails): string | null {
+  if (details.sceneImageUrl) {
+    return buildApiUrl(details.sceneImageUrl);
+  }
+  if (!details.worldId || !details.runId || details.turn == null) return null;
+  const file = `scene-turn-${Math.trunc(details.turn)}.png`;
+  return buildApiUrl(
+    `/play/runs/${encodeURIComponent(details.worldId)}/${encodeURIComponent(details.runId)}/images/${encodeURIComponent(file)}`,
+  );
+}
+
+function withCacheBust(url: string, attempt: number): string {
+  const joiner = url.includes("?") ? "&" : "?";
+  return `${url}${joiner}v=${attempt}`;
+}
+
+function PlaySceneImagePreview({ details }: { details: PlayToolDetails }) {
+  const url = useMemo(() => buildPlaySceneImageUrl(details), [details]);
+  const [readyUrl, setReadyUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    setReadyUrl(null);
+    if (!url) return;
+    let cancelled = false;
+    let timer: number | undefined;
+    let attempt = 0;
+    const maxAttempts = 40;
+
+    const probe = () => {
+      const image = new Image();
+      image.onload = () => {
+        if (!cancelled) setReadyUrl(url);
+      };
+      image.onerror = () => {
+        if (cancelled) return;
+        attempt += 1;
+        if (attempt < maxAttempts) {
+          timer = window.setTimeout(probe, 2000);
+        }
+      };
+      image.src = withCacheBust(url, attempt);
+    };
+
+    probe();
+    return () => {
+      cancelled = true;
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
+  }, [url]);
+
+  if (!readyUrl) return null;
+
+  return (
+    <div className="mt-3 overflow-hidden rounded-xl border border-border/40 bg-background/80">
+      <img
+        src={readyUrl}
+        alt="本幕配图"
+        className="block max-h-[420px] w-full object-contain bg-muted/20"
+        loading="lazy"
+      />
+      {details.turn != null && (
+        <div className="border-t border-border/40 px-3 py-2.5 text-[14px] leading-6 text-muted-foreground">
+          第 {Math.trunc(details.turn)} 幕配图
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function getPlayEditDetails(exec: ToolExecution): PlayEditDetails | null {
@@ -316,38 +397,38 @@ function ProposedActionPreview({
   const locked = resolution !== undefined;
   const contractRows = getProposedActionContractRows(details);
   return (
-    <div className="mx-3 mb-3 mt-1 rounded-xl border border-primary/25 bg-primary/5 px-3 py-3">
-      <div className="text-sm font-semibold text-foreground">{details.title ?? "确认执行"}</div>
+    <div className="mx-3 mb-3 mt-1 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3.5">
+      <div className="text-[17px] leading-6 font-semibold text-foreground">{details.title ?? "确认执行"}</div>
       {details.summary && (
-        <div className="mt-1 text-xs leading-5 text-muted-foreground">{details.summary}</div>
+        <div className="mt-1.5 whitespace-pre-wrap break-words text-[15px] leading-7 text-muted-foreground">{details.summary}</div>
       )}
-      <div className="mt-2 rounded-lg bg-background/70 px-2.5 py-2 text-xs leading-5 text-muted-foreground">
+      <div className="mt-2.5 whitespace-pre-wrap break-words rounded-lg bg-background/70 px-3 py-2.5 text-[15px] leading-7 text-muted-foreground">
         {details.instruction}
       </div>
       {contractRows.length > 0 && (
         <div className="mt-2 space-y-1.5">
           {contractRows.map((row) => (
-            <div key={row.label} className="rounded-lg border border-border/50 bg-background/60 px-2.5 py-2">
-              <div className="text-[11px] font-semibold text-foreground">{row.label}</div>
-              <div className="mt-1 text-xs leading-5 text-muted-foreground">{row.value}</div>
+            <div key={row.label} className="rounded-lg border border-border/50 bg-background/60 px-3 py-2.5">
+              <div className="text-[13px] leading-5 font-semibold text-foreground">{row.label}</div>
+              <div className="mt-1 whitespace-pre-wrap break-words text-[15px] leading-7 text-muted-foreground">{row.value}</div>
             </div>
           ))}
         </div>
       )}
       {resolution === "confirmed" ? (
-        <div className="mt-3 flex items-center gap-1.5 text-xs font-medium text-primary">
-          <Check size={13} className="shrink-0" />
+        <div className="mt-3 flex items-center gap-1.5 text-[15px] leading-6 font-medium text-primary">
+          <Check size={15} className="shrink-0" />
           {details.targetRoute ? "已打开" : "已执行"}
         </div>
       ) : resolution === "rejected" ? (
-        <div className="mt-3 text-xs font-medium text-muted-foreground">已取消</div>
+        <div className="mt-3 text-[15px] leading-6 font-medium text-muted-foreground">已取消</div>
       ) : (
         <div className="mt-3 flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => onProposedAction?.(details)}
             disabled={!onProposedAction || streaming || locked}
-            className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
+            className="rounded-lg bg-primary px-3.5 py-2 text-[15px] leading-6 font-medium text-primary-foreground disabled:opacity-50"
           >
             {streaming ? "执行中…" : details.targetRoute ? "打开入口" : "继续执行"}
           </button>
@@ -355,7 +436,7 @@ function ProposedActionPreview({
             type="button"
             onClick={() => onRejectProposedAction?.(details)}
             disabled={!onRejectProposedAction || streaming || locked}
-            className="rounded-lg border border-border/60 bg-background/80 px-3 py-1.5 text-xs font-medium text-muted-foreground disabled:opacity-50"
+            className="rounded-lg border border-border/60 bg-background/80 px-3.5 py-2 text-[15px] leading-6 font-medium text-muted-foreground disabled:opacity-50"
           >
             取消
           </button>
@@ -378,23 +459,18 @@ function PlayResultPreview({ exec }: { exec: ToolExecution }) {
         : "互动世界已推进";
   return (
     <div className="mx-3 mb-3 mt-1 rounded-xl border border-primary/20 bg-primary/5 px-3 py-3">
-      <div className="mb-2 text-xs font-semibold text-primary">
+      <div className="mb-2 text-[16px] leading-6 font-semibold text-primary">
         {label}
       </div>
-      <div className="whitespace-pre-wrap text-sm leading-6 text-foreground">{details.sceneText}</div>
+      <div className="whitespace-pre-wrap text-base leading-7 text-foreground">{details.sceneText}</div>
+      <PlaySceneImagePreview details={details} />
       {details.suggestedActions && details.suggestedActions.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
           {details.suggestedActions.slice(0, 4).map((action) => (
-            <span key={action} className="rounded-full border border-border/60 bg-background/70 px-2 py-1 text-[11px] text-muted-foreground">
+            <span key={action} className="rounded-full border border-border/60 bg-background/70 px-3 py-1.5 text-[15px] leading-6 text-muted-foreground">
               {action}
             </span>
           ))}
-        </div>
-      )}
-      {(details.worldId || details.runId) && (
-        <div className="mt-2 text-[11px] text-muted-foreground">
-          {details.worldId}{details.runId ? ` / ${details.runId}` : ""}
-          {details.variantId ? ` · ${details.variantId}` : ""}
         </div>
       )}
     </div>
@@ -413,15 +489,10 @@ function PlayEditPreview({ exec }: { exec: ToolExecution }) {
   ].filter(Boolean);
   return (
     <div className="mx-3 mb-3 mt-1 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5">
-      <div className="text-xs font-semibold text-primary">互动世界设定已更新</div>
+      <div className="text-[16px] leading-6 font-semibold text-primary">互动世界设定已更新</div>
       <div className="mt-1 text-xs leading-5 text-muted-foreground">
         {changes.length > 0 ? changes.join(" · ") : "已写入当前世界。"}
       </div>
-      {(details.worldId || details.runId) && (
-        <div className="mt-1 text-[11px] text-muted-foreground">
-          {details.worldId}{details.runId ? ` / ${details.runId}` : ""}
-        </div>
-      )}
     </div>
   );
 }
@@ -472,19 +543,19 @@ function PipelineExecution({
     <Collapsible open={open} onOpenChange={setOpen} className="rounded-xl border border-border/40 bg-card/60">
       <CollapsibleTrigger className="w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl hover:bg-card/80 transition-colors cursor-pointer">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-sm font-medium text-foreground truncate">
+          <span className="text-[16px] leading-6 font-medium text-foreground truncate">
             {exec.label}
             {bookId && <span className="text-muted-foreground font-normal"> · {bookId}</span>}
           </span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-[10px] text-muted-foreground/60">
+          <span className="text-[12px] text-muted-foreground/60">
             {isActive
               ? formatDuration(exec.startedAt, exec.startedAt + elapsedMs)
               : exec.completedAt ? formatDuration(exec.startedAt, exec.completedAt) : ""}
           </span>
           <ExecStatusBadge status={exec.status} />
-          <ChevronDown size={14} className={`text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+          <ChevronDown size={16} className={`text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
         </div>
       </CollapsibleTrigger>
       <ProposedActionPreview

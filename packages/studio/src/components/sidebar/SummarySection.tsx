@@ -17,13 +17,13 @@ import {
 const streamdownPlugins = { cjk, code, math, mermaid };
 
 const SIDEBAR_MD_CLASS =
-  "text-xs text-muted-foreground leading-relaxed " +
+  "text-[15px] text-muted-foreground leading-7 " +
   "[&>*:first-child]:mt-0 [&>*:last-child]:mb-0 " +
-  "[&>p+p]:mt-1.5 [&_strong]:text-foreground [&_strong]:font-medium " +
+  "[&>p+p]:mt-2 [&_strong]:text-foreground [&_strong]:font-medium " +
   "[&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:my-0.5 " +
-  "[&_h1]:hidden [&_h2]:text-xs [&_h2]:font-medium [&_h2]:text-foreground [&_h2]:mt-1.5 [&_h2]:mb-0.5 " +
-  "[&_h3]:text-xs [&_h3]:font-medium [&_h3]:text-foreground [&_h3]:mt-1.5 [&_h3]:mb-0.5 " +
-  "[&_code]:text-[11px] [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:bg-secondary/60";
+  "[&_h1]:hidden [&_h2]:text-[15px] [&_h2]:font-medium [&_h2]:text-foreground [&_h2]:mt-2 [&_h2]:mb-1 " +
+  "[&_h3]:text-[15px] [&_h3]:font-medium [&_h3]:text-foreground [&_h3]:mt-2 [&_h3]:mb-1 " +
+  "[&_code]:text-[12px] [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:bg-secondary/60";
 
 interface LegacySummary {
   world: string;
@@ -134,7 +134,7 @@ export function SummarySection({ bookId }: SummarySectionProps) {
   const openFull = (
     <button
       onClick={() => openArtifact("outline/story_frame.md")}
-      className="mt-2 text-xs text-primary hover:underline font-['SimSun','Songti_SC','STSong',serif]"
+      className="mt-2 text-[15px] leading-6 text-primary hover:underline font-['SimSun','Songti_SC','STSong',serif]"
     >
       查看完整设定 →
     </button>

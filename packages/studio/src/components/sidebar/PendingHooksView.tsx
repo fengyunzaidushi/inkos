@@ -22,7 +22,7 @@ function hookTypeColor(type: string): string {
 export function PendingHooksView({ content }: PendingHooksViewProps) {
   const hooks = parsePendingHooks(content);
   if (hooks.length === 0) {
-    return <p className="text-sm text-muted-foreground/60 italic">还没有埋下伏笔。</p>;
+    return <p className="text-[14px] leading-6 text-muted-foreground/60 italic">还没有埋下伏笔。</p>;
   }
   return (
     <div className="flex flex-col gap-2">
@@ -30,30 +30,30 @@ export function PendingHooksView({ content }: PendingHooksViewProps) {
         <div key={hook.id} className="rounded-lg bg-secondary/30 px-3 py-2.5">
           <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
             {hook.promoted === false && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-500/10 text-muted-foreground">
+              <span className="text-[12px] px-1.5 py-0.5 rounded-full bg-zinc-500/10 text-muted-foreground">
                 种子
               </span>
             )}
             {hook.promoted === true && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+              <span className="text-[12px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
                 活跃
               </span>
             )}
             {hook.type && (
-              <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full", hookTypeColor(hook.type))}>
+              <span className={cn("text-[12px] px-1.5 py-0.5 rounded-full", hookTypeColor(hook.type))}>
                 {hook.type}
               </span>
             )}
             {hook.core && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400">
+              <span className="text-[12px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400">
                 核心
               </span>
             )}
             {hook.payoff && (
-              <span className="text-[11px] text-muted-foreground/50 ml-auto">回收 · {hook.payoff}</span>
+              <span className="text-[12px] text-muted-foreground/50 ml-auto">回收 · {hook.payoff}</span>
             )}
           </div>
-          <p className="text-sm text-foreground leading-6 font-['SimSun','Songti_SC','STSong',serif]">
+          <p className="text-[15px] text-foreground leading-7 font-['SimSun','Songti_SC','STSong',serif]">
             {hook.content}
           </p>
         </div>

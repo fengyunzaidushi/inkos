@@ -203,7 +203,7 @@ describe("public short-fiction chain", () => {
     const originalFetch = globalThis.fetch;
     process.env.INKOS_TEST_COVER_KEY = "sk-cover";
     try {
-      const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      const fetchMock = vi.fn(async (_url: unknown, _init?: { readonly body?: unknown }) => new Response(JSON.stringify({
         data: [{ b64_json: "ZmFrZQ==" }],
       }), { status: 200, headers: { "content-type": "application/json" } }));
       globalThis.fetch = fetchMock as never;
@@ -233,6 +233,12 @@ describe("public short-fiction chain", () => {
           body: expect.stringContaining("离婚协议他递了三年"),
         }),
       );
+      const body = String(fetchMock.mock.calls[0]?.[1]?.body ?? "");
+      expect(body).toContain("按用户给出的标题、简介、卖点和视觉要求生成封面图。");
+      expect(body).not.toContain("中文商业短篇小说");
+      expect(body).not.toContain("不添加文字");
+      expect(body).not.toContain("水印");
+      expect(body).not.toContain("固定模板");
     } finally {
       globalThis.fetch = originalFetch;
       delete process.env.INKOS_TEST_COVER_KEY;
