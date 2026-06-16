@@ -104,6 +104,7 @@ export interface GeneratedArtifactDetails {
   readonly scriptPath?: string;
   readonly storyboardPath?: string;
   readonly imagePromptsPath?: string;
+  readonly assetsManifestPath?: string;
 }
 
 export interface PlayToolDetails {
@@ -207,6 +208,7 @@ export function getGeneratedArtifactDetails(exec: ToolExecution): GeneratedArtif
     scriptPath: stringField(record, "scriptPath"),
     storyboardPath: stringField(record, "storyboardPath"),
     imagePromptsPath: stringField(record, "imagePromptsPath"),
+    assetsManifestPath: stringField(record, "assetsManifestPath"),
   };
 }
 
@@ -219,6 +221,7 @@ function ScriptStoryboardResultPreview({ exec }: { exec: ToolExecution }) {
     details.scriptPath ? ["剧本", details.scriptPath] as const : null,
     details.storyboardPath ? ["分镜", details.storyboardPath] as const : null,
     details.imagePromptsPath ? ["图像提示词", details.imagePromptsPath] as const : null,
+    details.assetsManifestPath ? ["图片资产", details.assetsManifestPath] as const : null,
   ].filter((row): row is readonly [string, string] => Boolean(row));
   if (rows.length === 0) return null;
   return (

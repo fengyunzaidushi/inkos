@@ -61,6 +61,43 @@ export interface StoryboardCreationRunResult {
   readonly specPath: string;
   readonly storyboardPath: string;
   readonly imagePromptsPath: string;
+  readonly assetsManifestPath: string;
+  readonly assetsDir: string;
+}
+
+export interface StoryboardImageAssetVariant {
+  readonly id: string;
+  readonly path: string;
+  readonly status: "pending" | "generated" | "selected" | "failed";
+  readonly model?: string;
+  readonly provider?: string;
+  readonly createdAt?: string;
+  readonly error?: string;
+}
+
+export interface StoryboardImageAsset {
+  readonly shotId: string;
+  readonly prompt: string;
+  readonly sourceRefs: readonly string[];
+  readonly variants: readonly StoryboardImageAssetVariant[];
+  readonly selectedPath?: string;
+  readonly status: "prompt_ready" | "generated" | "selected" | "failed";
+}
+
+export interface StoryboardAssetsManifest {
+  readonly version: 1;
+  readonly kind: "storyboard_assets";
+  readonly title: string;
+  readonly projectId: string;
+  readonly baseDir: string;
+  readonly storyboardPath: string;
+  readonly imagePromptsPath: string;
+  readonly assetsDir: string;
+  readonly sourceDir: string;
+  readonly generatedDir: string;
+  readonly selectedDir: string;
+  readonly createdAt: string;
+  readonly assets: readonly StoryboardImageAsset[];
 }
 
 export async function runScriptCreation(
@@ -127,7 +164,24 @@ export async function runStoryboardCreation(
   const agent = new StoryboardCreationAgent(options.runtime);
   const storyboard = await agent.writeStoryboard(input);
   await writeProjectText(options.projectRoot, join(baseDir, "storyboard.md"), storyboard);
-  await writeProjectText(options.projectRoot, join(baseDir, "image-prompts.md"), extractStoryboardImagePrompts(storyboard));
+  const imagePrompts = extractStoryboardImagePrompts(storyboard);
+  await writeProjectText(options.projectRoot, join(baseDir, "image-prompts.md"), imagePrompts);
+  await ensureProjectDir(options.projectRoot, join(baseDir, "assets", "source"));
+  await ensureProjectDir(options.projectRoot, join(baseDir, "assets", "generated"));
+  await ensureProjectDir(options.projectRoot, join(baseDir, "assets", "selected"));
+  await writeProjectText(options.projectRoot, join(baseDir, "assets.json"), JSON.stringify(
+    createStoryboardAssetsManifest({
+      title: options.title,
+      projectId,
+      baseDir,
+      storyboardPath: join(baseDir, "storyboard.md"),
+      imagePromptsPath: join(baseDir, "image-prompts.md"),
+      imagePrompts,
+      createdAt: new Date().toISOString(),
+    }),
+    null,
+    2,
+  ));
   await writeProjectText(options.projectRoot, join(baseDir, "status.json"), JSON.stringify({
     status: "completed",
     kind: "storyboard",
@@ -141,6 +195,45 @@ export async function runStoryboardCreation(
     specPath: join(baseDir, "storyboard-spec.md"),
     storyboardPath: join(baseDir, "storyboard.md"),
     imagePromptsPath: join(baseDir, "image-prompts.md"),
+    assetsManifestPath: join(baseDir, "assets.json"),
+    assetsDir: join(baseDir, "assets"),
+  };
+}
+
+export function createStoryboardAssetsManifest(args: {
+  readonly title: string;
+  readonly projectId: string;
+  readonly baseDir: string;
+  readonly storyboardPath: string;
+  readonly imagePromptsPath: string;
+  readonly imagePrompts: string;
+  readonly createdAt: string;
+}): StoryboardAssetsManifest {
+  const assetsDir = join(args.baseDir, "assets");
+  const prompts = parseStoryboardPromptLines(args.imagePrompts);
+  return {
+    version: 1,
+    kind: "storyboard_assets",
+    title: args.title,
+    projectId: args.projectId,
+    baseDir: args.baseDir,
+    storyboardPath: args.storyboardPath,
+    imagePromptsPath: args.imagePromptsPath,
+    assetsDir,
+    sourceDir: join(assetsDir, "source"),
+    generatedDir: join(assetsDir, "generated"),
+    selectedDir: join(assetsDir, "selected"),
+    createdAt: args.createdAt,
+    assets: prompts.map((prompt, index) => {
+      const shotId = `shot-${String(index + 1).padStart(3, "0")}`;
+      return {
+        shotId,
+        prompt,
+        sourceRefs: [],
+        variants: [],
+        status: "prompt_ready",
+      };
+    }),
   };
 }
 
@@ -160,6 +253,10 @@ async function writeProjectText(projectRoot: string, relativePath: string, conte
   const fullPath = safeChildPath(projectRoot, relativePath);
   await mkdir(dirname(fullPath), { recursive: true });
   await writeFile(fullPath, content.endsWith("\n") ? content : `${content}\n`, "utf-8");
+}
+
+async function ensureProjectDir(projectRoot: string, relativePath: string): Promise<void> {
+  await mkdir(safeChildPath(projectRoot, relativePath), { recursive: true });
 }
 
 function mergeRequirements(instruction: string, requirements: string | undefined): string {
@@ -192,6 +289,45 @@ function slugify(value: string): string {
     .replace(/[^\p{L}\p{N}]+/gu, "-")
     .replace(/^-+|-+$/g, "");
   return text || `script-${Date.now()}`;
+}
+
+function parseStoryboardPromptLines(markdown: string): string[] {
+  const lines = markdown.split(/\r?\n/);
+  const prompts: string[] = [];
+  let current: string[] = [];
+
+  const flush = () => {
+    const prompt = current.join(" ").replace(/\s+/g, " ").trim();
+    if (prompt) prompts.push(prompt);
+    current = [];
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || /^#{1,6}\s/u.test(line)) {
+      flush();
+      continue;
+    }
+    const match = /^(?:[-*]\s*)?(?:镜头|分镜|shot)?\s*([\d０-９]{1,3})[.)、：:\s-]+(.+)$/iu.exec(line);
+    if (match) {
+      flush();
+      current.push(match[2]!.trim());
+      continue;
+    }
+    if (current.length > 0 && /^(?:[-*]\s*)/.test(line)) {
+      flush();
+      current.push(line.replace(/^(?:[-*]\s*)/, "").trim());
+      continue;
+    }
+    if (current.length > 0) {
+      current.push(line);
+    } else {
+      current.push(line.replace(/^(?:[-*]\s*)/, "").trim());
+    }
+  }
+  flush();
+
+  return prompts;
 }
 
 export async function projectFileExists(projectRoot: string, relativePath: string): Promise<boolean> {

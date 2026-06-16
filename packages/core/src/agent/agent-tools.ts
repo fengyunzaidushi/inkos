@@ -1050,6 +1050,7 @@ export function createStoryboardCreationTool(
           `Spec: ${result.specPath}`,
           `Storyboard: ${result.storyboardPath}`,
           `Image prompts: ${result.imagePromptsPath}`,
+          `Image assets: ${result.assetsManifestPath}`,
         ].join("\n"),
         { kind: "storyboard_created", ...result },
       );

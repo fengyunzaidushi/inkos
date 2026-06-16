@@ -4,6 +4,7 @@ import {
   renderScriptSpec,
   renderStoryboardSpec,
 } from "../agents/script-storyboard.js";
+import { createStoryboardAssetsManifest } from "../pipeline/script-storyboard-runner.js";
 
 describe("script and storyboard creation helpers", () => {
   it("renders a human-readable script spec without excerpting source text", () => {
@@ -66,5 +67,41 @@ describe("script and storyboard creation helpers", () => {
     expect(prompts).toContain("旧账页特写");
     expect(prompts).not.toContain("分镜表");
     expect(prompts).not.toContain("备注");
+  });
+
+  it("builds a storyboard image asset manifest from editable prompts", () => {
+    const manifest = createStoryboardAssetsManifest({
+      title: "冷库账页",
+      projectId: "cold-ledger",
+      baseDir: "storyboards/cold-ledger",
+      storyboardPath: "storyboards/cold-ledger/storyboard.md",
+      imagePromptsPath: "storyboards/cold-ledger/image-prompts.md",
+      imagePrompts: [
+        "1. 冷库门口，女出纳推门，冷色写实，9:16",
+        "2. 旧账页特写，手电光扫过红章",
+      ].join("\n"),
+      createdAt: "2026-06-16T00:00:00.000Z",
+    });
+
+    expect(manifest.kind).toBe("storyboard_assets");
+    expect(manifest.assetsDir).toBe("storyboards/cold-ledger/assets");
+    expect(manifest.generatedDir).toBe("storyboards/cold-ledger/assets/generated");
+    expect(manifest.selectedDir).toBe("storyboards/cold-ledger/assets/selected");
+    expect(manifest.assets).toEqual([
+      {
+        shotId: "shot-001",
+        prompt: "冷库门口，女出纳推门，冷色写实，9:16",
+        sourceRefs: [],
+        variants: [],
+        status: "prompt_ready",
+      },
+      {
+        shotId: "shot-002",
+        prompt: "旧账页特写，手电光扫过红章",
+        sourceRefs: [],
+        variants: [],
+        status: "prompt_ready",
+      },
+    ]);
   });
 });
