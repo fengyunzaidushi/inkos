@@ -77,6 +77,7 @@ export interface AgentResponse {
   readonly details?: {
     readonly draftRaw?: string;
     readonly toolCall?: ToolCall;
+    readonly toolExecutions?: ReadonlyArray<ToolExecution>;
   };
   readonly session?: {
     readonly sessionId?: string;

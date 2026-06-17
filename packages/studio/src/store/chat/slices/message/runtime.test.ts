@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Message, ToolExecution } from "../../types";
-import { createSessionRuntime, deriveResolvedProposals, extractErrorMessage, extractToolError } from "./runtime";
+import { createSessionRuntime, deriveResolvedProposals, deserializeMessages, extractErrorMessage, extractToolError, withToolExecutions } from "./runtime";
 
 function exec(overrides: Partial<ToolExecution> & { id: string; tool: string }): ToolExecution {
   const { id, tool, ...rest } = overrides;
@@ -69,6 +69,42 @@ describe("deriveResolvedProposals", () => {
             id: "play-1",
             tool: "play_start",
             details: { kind: "play_world_started" },
+          }),
+        ],
+      },
+    ];
+
+    expect(deriveResolvedProposals(messages)).toEqual({ "proposal-1": "confirmed" });
+  });
+
+  it("marks a proposed interactive-film creation as confirmed when the tool completed later", () => {
+    const messages: Message[] = [
+      {
+        role: "assistant",
+        content: "",
+        timestamp: 1,
+        toolExecutions: [
+          exec({
+            id: "proposal-1",
+            tool: "propose_action",
+            details: {
+              kind: "proposed_action",
+              action: "interactive_film_create",
+              targetSessionKind: "interactive-film",
+              instruction: "制作鸦冠之宴",
+            },
+          }),
+        ],
+      },
+      {
+        role: "assistant",
+        content: "",
+        timestamp: 2,
+        toolExecutions: [
+          exec({
+            id: "interactive-1",
+            tool: "interactive_film_create",
+            details: { kind: "interactive_film_created" },
           }),
         ],
       },
@@ -147,5 +183,49 @@ describe("deriveResolvedProposals", () => {
     ];
 
     expect(deriveResolvedProposals(messages)).toEqual({ "new-proposal": "confirmed" });
+  });
+});
+
+describe("deserializeMessages", () => {
+  it("restores tool executions from legacyDisplay for tool-only assistant messages", () => {
+    const messages = deserializeMessages([
+      {
+        role: "assistant",
+        content: "",
+        timestamp: 1,
+        legacyDisplay: {
+          toolExecutions: [
+            exec({
+              id: "interactive-1",
+              tool: "interactive_film_create",
+              details: { kind: "interactive_film_created", baseDir: "interactive-films/crow-crown-banquet" },
+            }),
+          ],
+        },
+      } as any,
+    ]);
+
+    expect(messages[0]?.toolExecutions?.[0]?.tool).toBe("interactive_film_create");
+    expect(messages[0]?.parts?.[0]?.type).toBe("tool");
+  });
+});
+
+describe("withToolExecutions", () => {
+  it("adds returned tool executions before final text content", () => {
+    const message = withToolExecutions({
+      role: "assistant",
+      content: "完成。",
+      timestamp: 1,
+    }, [
+      exec({
+        id: "script-1",
+        tool: "script_create",
+        details: { kind: "script_created" },
+      }),
+    ]);
+
+    expect(message.toolExecutions?.map((execution) => execution.tool)).toEqual(["script_create"]);
+    expect(message.parts?.map((part) => part.type)).toEqual(["tool", "text"]);
+    expect(message.content).toBe("完成。");
   });
 });

@@ -2712,7 +2712,16 @@ describe("createStudioServer daemon lifecycle", () => {
     expect(response.status).toBe(200);
     expect(runAgentSessionMock).not.toHaveBeenCalled();
     await expect(response.json()).resolves.toMatchObject({
-      response: "暴雨敲着铁皮门，封存档案箱压在门口。",
+      response: "",
+      details: {
+        toolExecutions: [
+          expect.objectContaining({
+            tool: "play_start",
+            status: "completed",
+            result: "暴雨敲着铁皮门，封存档案箱压在门口。",
+          }),
+        ],
+      },
       session: { sessionId: "play-session-1", sessionKind: "play" },
     });
     expect(appendManualSessionMessagesMock).toHaveBeenCalledWith(
@@ -2787,8 +2796,9 @@ describe("createStudioServer daemon lifecycle", () => {
 
     const body = await response.json();
     expect(response.status, JSON.stringify(body)).toBe(200);
-    expect(body.response).toContain("主演栏写着赵铁生");
-    expect(body.response).not.toContain("主演栏里有个名字叫");
+    expect(body.response).toBe("");
+    expect(body.details?.toolExecutions?.[0]?.result).toContain("主演栏写着赵铁生");
+    expect(body.details?.toolExecutions?.[0]?.result).not.toContain("主演栏里有个名字叫");
     await expect(readFile(join(root, "worlds", "play-session-truncated", "runs", "main", "projections", "scene.md"), "utf-8"))
       .resolves.toContain("主演栏写着赵铁生");
   });

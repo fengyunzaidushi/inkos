@@ -659,7 +659,12 @@ class ConfirmedActionExecutionError extends Error {
 }
 
 function suppressManualTextForTool(exec: CollectedToolExec): boolean {
-  return exec.tool === "play_start" || exec.tool === "play_step" || exec.tool === "play_revise";
+  return exec.tool === "play_start"
+    || exec.tool === "play_step"
+    || exec.tool === "play_revise"
+    || exec.tool === "script_create"
+    || exec.tool === "storyboard_create"
+    || exec.tool === "interactive_film_create";
 }
 
 function manualToolAssistantMessage(
@@ -3539,6 +3544,7 @@ export function createStudioServer(initialConfig: ProjectConfig, root: string) {
           }
 
           const responseText = exec.result ?? "已完成。";
+          const responseForUser = suppressManualTextForTool(exec) ? "" : responseText;
           await appendManualSessionMessages(root, bookSession.sessionId, [
             manualToolAssistantMessage(
               responseText,
@@ -3550,7 +3556,8 @@ export function createStudioServer(initialConfig: ProjectConfig, root: string) {
           await refreshBookSessionFromTranscript();
           broadcast("agent:complete", { instruction, activeBookId: createdBookId ?? agentBookId, sessionId: bookSession.sessionId, sessionKind });
           return c.json({
-            response: responseText,
+            response: responseForUser,
+            details: { toolExecutions: [exec] },
             session: {
               sessionId: bookSession.sessionId,
               sessionKind,

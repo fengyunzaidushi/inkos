@@ -1,5 +1,5 @@
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import type { AgentContext } from "../agents/base.js";
 import {
   InteractiveFilmCreationAgent,
@@ -141,7 +141,7 @@ export async function runScriptCreation(
   options: ScriptCreationRunOptions,
 ): Promise<ScriptCreationRunResult> {
   const projectId = safeSegment(options.projectId ?? slugify(options.title));
-  const baseDir = join(normalizeOutputDir(options.outDir ?? "dramas"), projectId);
+  const baseDir = resolveProjectBaseDir(options.outDir ?? "dramas", projectId);
   const sourceText = await resolveSourceText(options.projectRoot, options.sourceText, options.sourcePath);
   const input: ScriptCreationInput = {
     title: options.title,
@@ -180,7 +180,7 @@ export async function runInteractiveFilmCreation(
   options: InteractiveFilmCreationRunOptions,
 ): Promise<InteractiveFilmCreationRunResult> {
   const projectId = safeSegment(options.projectId ?? slugify(options.title));
-  const baseDir = join(normalizeOutputDir(options.outDir ?? "interactive-films"), projectId);
+  const baseDir = resolveProjectBaseDir(options.outDir ?? "interactive-films", projectId);
   const sourceText = await resolveSourceText(options.projectRoot, options.sourceText, options.sourcePath);
   const input: InteractiveFilmCreationInput = {
     title: options.title,
@@ -207,6 +207,7 @@ export async function runInteractiveFilmCreation(
     "Branching Story Tree",
   ], packageMarkdown);
   const flags = requiredSection(packageMarkdown, [
+    "旗标与变量系统说明",
     "变量与旗标表",
     "变量和旗标表",
     "变量表",
@@ -273,7 +274,7 @@ export async function runStoryboardCreation(
   options: StoryboardCreationRunOptions,
 ): Promise<StoryboardCreationRunResult> {
   const projectId = safeSegment(options.projectId ?? slugify(options.title));
-  const baseDir = join(normalizeOutputDir(options.outDir ?? "storyboards"), projectId);
+  const baseDir = resolveProjectBaseDir(options.outDir ?? "storyboards", projectId);
   const sourceText = await resolveSourceText(options.projectRoot, options.sourceText, options.sourcePath);
   const input: StoryboardCreationInput = {
     title: options.title,
@@ -404,6 +405,11 @@ function normalizeOutputDir(value: string): string {
   return text;
 }
 
+function resolveProjectBaseDir(outDir: string, projectId: string): string {
+  const outputDir = normalizeOutputDir(outDir);
+  return basename(outputDir) === projectId ? outputDir : join(outputDir, projectId);
+}
+
 function safeSegment(value: string): string {
   const text = value.trim();
   if (!text || text === "." || text === ".." || text.includes("/") || text.includes("\\") || text.includes("\0")) {
@@ -424,17 +430,32 @@ function slugify(value: string): string {
 function parseStoryboardPromptLines(markdown: string): string[] {
   const lines = markdown.split(/\r?\n/);
   const prompts: string[] = [];
+  let promptColumnIndex = -1;
 
   for (const rawLine of lines) {
     const line = rawLine.trim();
-    if (!line) continue;
-    const promptMatch = /(?:^|[|>\-\d.)、\s])(?:\*\*)?\s*(?:Prompt|提示词|图像提示词|分镜图提示词)\s*(?:\*\*)?\s*[：:]\s*(.+?)\s*$/iu.exec(line);
+    if (!line) {
+      promptColumnIndex = -1;
+      continue;
+    }
+    const tableCells = parseMarkdownTableRow(line);
+    if (tableCells) {
+      if (isMarkdownTableSeparator(tableCells)) continue;
+      const headerIndex = tableCells.findIndex(isPromptColumnHeader);
+      if (headerIndex >= 0) {
+        promptColumnIndex = headerIndex;
+        continue;
+      }
+      if (promptColumnIndex >= 0) {
+        const prompt = cleanPromptText(tableCells[promptColumnIndex] ?? "");
+        if (prompt) prompts.push(prompt);
+      }
+      continue;
+    }
+    promptColumnIndex = -1;
+    const promptMatch = /(?:^|[|>\-\d.)、\s])(?:\*\*)?\s*(?:Prompt(?:\s+for\s+[^:*：]+)?|提示词(?:\s*[^:*：]+)?|图像提示词|分镜图提示词)\s*(?:\*\*)?\s*[：:]\s*(.+?)\s*$/iu.exec(line);
     if (promptMatch) {
-      const prompt = promptMatch[1]!
-        .replace(/\s*\|\s*$/u, "")
-        .replace(/\*\*$/u, "")
-        .replace(/\s+/g, " ")
-        .trim();
+      const prompt = cleanPromptText(promptMatch[1]!);
       if (prompt) prompts.push(prompt);
       continue;
     }
@@ -448,6 +469,31 @@ function parseStoryboardPromptLines(markdown: string): string[] {
   }
 
   return prompts;
+}
+
+function parseMarkdownTableRow(line: string): string[] | undefined {
+  if (!line.startsWith("|") || !line.endsWith("|")) return undefined;
+  const cells = line.slice(1, -1).split("|").map((cell) => cell.trim());
+  return cells.length >= 2 ? cells : undefined;
+}
+
+function isMarkdownTableSeparator(cells: readonly string[]): boolean {
+  return cells.every((cell) => /^:?-{3,}:?$/u.test(cell));
+}
+
+function isPromptColumnHeader(cell: string): boolean {
+  return /^(?:prompt|image\s*prompt|shot\s*prompt|提示词|图像提示词|分镜图提示词)$/iu.test(
+    cell.replace(/[`*_]+/gu, "").trim(),
+  );
+}
+
+function cleanPromptText(text: string): string {
+  return text
+    .replace(/\s*\|\s*$/u, "")
+    .replace(/\*\*$/u, "")
+    .replace(/^(?:Prompt(?:\s+for\s+[^:*：]+)?|提示词(?:\s*[^:*：]+)?|图像提示词|分镜图提示词)\s*[：:]\s*/iu, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function requiredSection(raw: string, headings: readonly string[], fallback: string): string {

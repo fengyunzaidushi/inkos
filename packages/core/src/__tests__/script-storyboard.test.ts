@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  extractMarkdownSection,
   extractStoryboardImagePrompts,
   normalizeScriptEpisodeEndLabels,
   renderInteractiveFilmSpec,
@@ -87,6 +88,54 @@ describe("script and storyboard creation helpers", () => {
     expect(prompts).toBe([
       "1. 冷库门口，女出纳推门，冷色写实，9:16",
       "2. 旧账页特写，手电光扫过红章",
+    ].join("\n"));
+  });
+
+  it("matches markdown section headings with descriptive suffixes", () => {
+    const section = extractMarkdownSection([
+      "# 鸦冠之宴",
+      "",
+      "## 剧情树（主干+分支）",
+      "- N1 宴会前厅 -> 选择 A 公开密信 / 选择 B 隐藏密信",
+      "",
+      "## 变量与旗标表",
+      "| 变量 | 含义 |",
+      "| --- | --- |",
+    ].join("\n"), ["剧情树"]);
+
+    expect(section).toContain("N1 宴会前厅");
+    expect(section).not.toContain("变量与旗标表");
+  });
+
+  it("extracts markdown-bold prompt labels with shot ids", () => {
+    const prompts = extractStoryboardImagePrompts([
+      "# 鸦冠之宴",
+      "",
+      "## 分镜与图像提示词（关键镜头列表）",
+      "**Prompt for C01**: dark-gold medieval court, candlelight, raven feathers, cinematic",
+      "**提示词 C02**：石厅长桌，贵族交锋，蜡烛与暗金帷幕",
+    ].join("\n"));
+
+    expect(prompts).toBe([
+      "1. dark-gold medieval court, candlelight, raven feathers, cinematic",
+      "2. 石厅长桌，贵族交锋，蜡烛与暗金帷幕",
+    ].join("\n"));
+  });
+
+  it("extracts prompts from markdown tables with a Prompt column", () => {
+    const prompts = extractStoryboardImagePrompts([
+      "# 雾桥旅馆",
+      "",
+      "## 分镜与图像提示词",
+      "| 幕次 | 场景 | Prompt |",
+      "|------|------|--------|",
+      "| 第一幕 | 旅馆大堂 | 冷色调互动影游场景，雨夜旅馆大堂内部，木制前台，三块监控屏幕 |",
+      "| 第二幕 | 15号房 | 旅馆房间内部，行李箱暗格露出护照，冷色照明，雨夜窗外光线 |",
+    ].join("\n"));
+
+    expect(prompts).toBe([
+      "1. 冷色调互动影游场景，雨夜旅馆大堂内部，木制前台，三块监控屏幕",
+      "2. 旅馆房间内部，行李箱暗格露出护照，冷色照明，雨夜窗外光线",
     ].join("\n"));
   });
 

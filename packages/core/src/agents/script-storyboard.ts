@@ -133,7 +133,7 @@ export function renderStoryboardSpec(input: StoryboardCreationInput): string {
     "- 分镜是创作工具，不替用户锁死最终拍法；输出要便于继续讨论、增删、改镜头。",
     "- 每个镜头只写画面能看见、角色能演、镜头能表达的信息。",
     "- 分镜图提示词服务图像生成：角色、动作、景别、场景、光线、情绪和关键道具要清楚。",
-    "- 不强行添加水印、边框、游戏 UI 或文字，除非用户明确要求。",
+    "- 只遵循用户已确认的画风、格式、构图和视觉限制；用户没说的，不写成默认硬限制。",
     "",
     "## 源素材摘要",
     summarizeSourceForSpec(input.sourceText),
@@ -184,12 +184,12 @@ export function extractMarkdownSection(raw: string, headings: readonly string[])
   const lines = raw.split(/\r?\n/);
   let start = -1;
   let level = 0;
-  const normalizedHeadings = headings.map((heading) => heading.trim().toLowerCase());
+  const normalizedHeadings = headings.map(normalizeHeadingText);
   for (let index = 0; index < lines.length; index += 1) {
     const match = /^(#{1,6})\s*(.+?)\s*$/u.exec(lines[index] ?? "");
     if (!match) continue;
-    const text = match[2]!.trim().toLowerCase();
-    if (normalizedHeadings.includes(text)) {
+    const text = normalizeHeadingText(match[2]!);
+    if (normalizedHeadings.some((heading) => headingMatches(text, heading))) {
       start = index + 1;
       level = match[1]!.length;
       break;
@@ -205,6 +205,22 @@ export function extractMarkdownSection(raw: string, headings: readonly string[])
     }
   }
   return lines.slice(start, end).join("\n");
+}
+
+function normalizeHeadingText(text: string): string {
+  return text
+    .trim()
+    .replace(/^\*\*(.+)\*\*$/u, "$1")
+    .replace(/[`*_]+/gu, "")
+    .replace(/\s+/gu, " ")
+    .toLowerCase();
+}
+
+function headingMatches(text: string, heading: string): boolean {
+  if (text === heading) return true;
+  if (!text.startsWith(heading)) return false;
+  const rest = text.slice(heading.length).trim();
+  return rest === "" || /^[（(【\[\s:：\-—]/u.test(rest);
 }
 
 export function normalizeScriptEpisodeEndLabels(script: string): string {
@@ -253,7 +269,7 @@ function buildStoryboardCreationSystemPrompt(): string {
   return [
     "你是分镜创作工具，负责把剧本、小说片段或创意拆成可拍、可画、可生图的分镜。",
     "分镜不是剧情摘要；每个镜头都要有画面、角色位置、动作、景别或视觉重点。",
-    "保留用户确认的视觉规格，不擅自加边框、水印、游戏 UI、文字或固定风格。",
+    "保留用户确认的视觉规格；不要把用户没有确认的视觉限制写成默认要求。",
     "图像提示词要便于生图：主体、动作、场景、光线、构图、情绪、关键道具明确。",
     "输出 Markdown。不要写模型自述或流程解释。",
   ].join("\n");
@@ -277,7 +293,7 @@ function buildStoryboardCreationUserPrompt(input: StoryboardCreationInput): stri
     "",
     "## 图像提示词",
     "",
-    "为每个镜头写一条可用于生图的提示词。每条必须单独写成 `Prompt: ...`，不要混入分镜正文、表头或解释。提示词不需要生成画面文字，不加水印，不加 UI，除非用户明确要求。",
+    "为每个镜头写一条可用于生图的提示词。每条必须单独写成 `Prompt: ...`，不要混入分镜正文、表头或解释；只写用户确认过的视觉限制。",
   ].join("\n");
 }
 
@@ -287,7 +303,7 @@ function buildInteractiveFilmCreationSystemPrompt(): string {
     "互动影游不是普通剧本：必须有剧情树、关键选择、变量/旗标、关系/证据/物品状态、多结局达成条件。",
     "变量系统只服务剧情推进和分支解锁，不要默认 RPG 数值、战斗公式或装备等级；只有用户明确要求时才写对应规则。",
     "输出必须是 Markdown，包含指定小节。不要写模型自述、流程说明或“以下是”。",
-    "分镜图提示词必须写成单独的 `Prompt: ...` 行，便于后续资产管理；不要添加水印、边框、UI 或画面文字，除非用户明确要求。",
+    "分镜图提示词必须写成单独的 `Prompt: ...` 行，便于后续资产管理；只写用户确认过的视觉限制。",
   ].join("\n");
 }
 
@@ -358,16 +374,57 @@ function estimateInteractiveFilmMaxTokens(input: InteractiveFilmCreationInput): 
 
 function extractPromptLines(markdown: string): string[] {
   const prompts: string[] = [];
+  let promptColumnIndex = -1;
   for (const rawLine of markdown.split(/\r?\n/)) {
     const line = rawLine.trim();
-    if (!line) continue;
-    const promptMatch = /(?:^|[|>\-\d.)、\s])(?:\*\*)?\s*(?:Prompt|提示词|图像提示词|分镜图提示词)\s*(?:\*\*)?\s*[：:]\s*(.+?)\s*$/iu.exec(line);
+    if (!line) {
+      promptColumnIndex = -1;
+      continue;
+    }
+    const tableCells = parseMarkdownTableRow(line);
+    if (tableCells) {
+      if (isMarkdownTableSeparator(tableCells)) continue;
+      const headerIndex = tableCells.findIndex(isPromptColumnHeader);
+      if (headerIndex >= 0) {
+        promptColumnIndex = headerIndex;
+        continue;
+      }
+      if (promptColumnIndex >= 0) {
+        const prompt = cleanPromptText(tableCells[promptColumnIndex] ?? "");
+        if (prompt) prompts.push(prompt);
+      }
+      continue;
+    }
+    promptColumnIndex = -1;
+    const promptMatch = /(?:^|[|>\-\d.)、\s])(?:\*\*)?\s*(?:Prompt(?:\s+for\s+[^:*：]+)?|提示词(?:\s*[^:*：]+)?|图像提示词|分镜图提示词)\s*(?:\*\*)?\s*[：:]\s*(.+?)\s*$/iu.exec(line);
     if (!promptMatch) continue;
-    const prompt = promptMatch[1]!
-      .replace(/\s*\|\s*$/u, "")
-      .replace(/\*\*$/u, "")
-      .trim();
+    const prompt = cleanPromptText(promptMatch[1]!);
     if (prompt) prompts.push(prompt);
   }
   return prompts;
+}
+
+function parseMarkdownTableRow(line: string): string[] | undefined {
+  if (!line.startsWith("|") || !line.endsWith("|")) return undefined;
+  const cells = line.slice(1, -1).split("|").map((cell) => cell.trim());
+  return cells.length >= 2 ? cells : undefined;
+}
+
+function isMarkdownTableSeparator(cells: readonly string[]): boolean {
+  return cells.every((cell) => /^:?-{3,}:?$/u.test(cell));
+}
+
+function isPromptColumnHeader(cell: string): boolean {
+  return /^(?:prompt|image\s*prompt|shot\s*prompt|提示词|图像提示词|分镜图提示词)$/iu.test(
+    cell.replace(/[`*_]+/gu, "").trim(),
+  );
+}
+
+function cleanPromptText(text: string): string {
+  return text
+    .replace(/\s*\|\s*$/u, "")
+    .replace(/\*\*$/u, "")
+    .replace(/^(?:Prompt(?:\s+for\s+[^:*：]+)?|提示词(?:\s*[^:*：]+)?|图像提示词|分镜图提示词)\s*[：:]\s*/iu, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }

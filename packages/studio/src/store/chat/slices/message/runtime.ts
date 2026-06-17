@@ -28,6 +28,9 @@ const TOOL_LABELS: Record<string, string> = {
   propose_action: "确认动作",
   short_fiction_run: "短篇生产",
   generate_cover: "生成封面",
+  script_create: "剧本创作",
+  storyboard_create: "分镜创作",
+  interactive_film_create: "互动影游",
   play_edit: "编辑互动世界",
   play_start: "启动互动世界",
   play_revise: "重做互动回合",
@@ -148,6 +151,30 @@ export function deriveFlat(
   };
 }
 
+export function withToolExecutions(
+  message: Message,
+  executions: ReadonlyArray<ToolExecution>,
+): Message {
+  if (executions.length === 0) return message;
+  const existingIds = new Set((message.toolExecutions ?? []).map((execution) => execution.id));
+  const missing = executions.filter((execution) => !existingIds.has(execution.id));
+  if (missing.length === 0) return message;
+
+  const currentParts = message.parts ?? (message.content ? [{ type: "text" as const, content: message.content }] : []);
+  const nonTextParts = currentParts.filter((part) => part.type !== "text");
+  const textParts = currentParts.filter((part) => part.type === "text");
+  const parts: MessagePart[] = [
+    ...nonTextParts,
+    ...missing.map((execution) => ({ type: "tool" as const, execution })),
+    ...textParts,
+  ];
+  return {
+    ...message,
+    ...deriveFlat(parts),
+    parts,
+  };
+}
+
 export function createSessionRuntime(input: {
   sessionId: string;
   bookId: string | null;
@@ -177,7 +204,7 @@ export function deserializeMessages(
   return msgs
     .filter((message) => message.role === "user" || message.role === "assistant")
     .map((message) => {
-      const toolExecutions = (message as any).toolExecutions as ToolExecution[] | undefined;
+      const toolExecutions = extractSessionToolExecutions(message);
       const parts: MessagePart[] = [];
       if (message.thinking) parts.push({ type: "thinking", content: message.thinking, streaming: false });
       if (toolExecutions) {
@@ -197,6 +224,13 @@ export function deserializeMessages(
     });
 }
 
+function extractSessionToolExecutions(message: SessionMessage): ToolExecution[] | undefined {
+  const direct = (message as any).toolExecutions;
+  if (Array.isArray(direct)) return direct as ToolExecution[];
+  const legacy = (message as any).legacyDisplay?.toolExecutions;
+  return Array.isArray(legacy) ? legacy as ToolExecution[] : undefined;
+}
+
 type ProposalResolution = "confirmed" | "rejected";
 
 function proposedActionFrom(exec: ToolExecution): string | null {
@@ -213,6 +247,9 @@ function completesProposedAction(exec: ToolExecution, action: string): boolean {
   if (action === "short_run") return exec.tool === "short_fiction_run";
   if (action === "play_start") return exec.tool === "play_start";
   if (action === "generate_cover") return exec.tool === "generate_cover";
+  if (action === "script_create") return exec.tool === "script_create";
+  if (action === "storyboard_create") return exec.tool === "storyboard_create";
+  if (action === "interactive_film_create") return exec.tool === "interactive_film_create";
   return false;
 }
 
