@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { mkdtemp, rm, mkdir } from "node:fs/promises";
+import { mkdtemp, rm, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDraftStructureTool, createRemoveNodeTool, createConnectChoiceTool } from "../agent/film-authoring-tools.js";
@@ -20,6 +20,25 @@ describe("confirm-class authoring tools", () => {
     const tool = createDraftStructureTool(root, "p", { chat: async () => structure });
     await tool.execute("call-1", { instruction: "三幕" } as never);
     expect((await loadStoryGraph(root, "p"))?.nodes.map(n => n.id).sort()).toEqual(["e", "s"]);
+  });
+
+  it("loads interactive-film story-graph prompt-pack overrides and reports skill details", async () => {
+    await mkdir(join(root, "prompt", "interactive-film"), { recursive: true });
+    await writeFile(join(root, "prompt", "interactive-film", "story-graph.md"), "PROJECT STORY GRAPH OVERRIDE: every branch needs a visible flag.");
+    let systemPrompt = "";
+    const tool = createDraftStructureTool(root, "p", {
+      chat: async (system) => {
+        systemPrompt = system;
+        return structure;
+      },
+    });
+
+    const result = await tool.execute("call-1", { instruction: "三幕" } as never);
+
+    expect(systemPrompt).toContain("Prompt Pack Guidance");
+    expect(systemPrompt).toContain("PROJECT STORY GRAPH OVERRIDE");
+    expect((result.details as any).usedSkills).toContain("interactive-film-authoring");
+    expect((result.details as any).promptPacks).toContain("interactive-film.story-graph");
   });
 
   it("remove_node deletes the node", async () => {

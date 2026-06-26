@@ -1,4 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   PlayActionInterpreterAgent,
   PlaySceneReconcilerAgent,
@@ -147,6 +150,33 @@ describe("play agents", () => {
     expect(system).toContain("自然语言状态");
   });
 
+  it("loads project Play prompt-pack overrides into the mutator system prompt", async () => {
+    const root = await mkdtemp(join(tmpdir(), "inkos-play-prompt-"));
+    try {
+      await mkdir(join(root, "prompt", "play"), { recursive: true });
+      await writeFile(join(root, "prompt", "play", "mutator.md"), "PROJECT MUTATOR OVERRIDE: honor lantern rarity by atmosphere.");
+      const agent = new PlayWorldMutatorAgent({ ...ctx, projectRoot: root });
+      const chat = vi.spyOn(agent as unknown as { chat: PlayWorldMutatorAgent["chat"] }, "chat").mockResolvedValue({
+        content: JSON.stringify({ eventId: "evt-1", turn: 1, actionKind: "look" }),
+      } as never);
+
+      await agent.proposeMutation({
+        turn: 1,
+        input: "我检查蓝色提灯",
+        action: { actionKind: "look", intent: "检查蓝色提灯" },
+        context: "世界契约：稀有度通过氛围表达。",
+        language: "zh",
+      });
+
+      const messages = chat.mock.calls[0]?.[0] as ReadonlyArray<{ readonly role: string; readonly content: string }>;
+      const system = messages.find((message) => message.role === "system")?.content ?? "";
+      expect(system).toContain("Prompt Pack Guidance");
+      expect(system).toContain("PROJECT MUTATOR OVERRIDE");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("mutator prompt keeps each player action to one adjacent beat instead of jumping ahead", async () => {
     const agent = new PlayWorldMutatorAgent(ctx);
     const chat = vi.spyOn(agent as unknown as { chat: PlayWorldMutatorAgent["chat"] }, "chat").mockResolvedValue({
@@ -200,6 +230,35 @@ describe("play agents", () => {
       sceneText: expect.stringContaining("车机屏幕"),
       suggestedActions: ["继续翻看医院记录", "套徐晋安的话"],
     });
+  });
+
+  it("loads project Play prompt-pack overrides into the renderer system prompt", async () => {
+    const root = await mkdtemp(join(tmpdir(), "inkos-play-renderer-prompt-"));
+    try {
+      await mkdir(join(root, "prompt", "play"), { recursive: true });
+      await writeFile(join(root, "prompt", "play", "renderer.md"), "PROJECT RENDERER OVERRIDE: render romance props through distance and touch.");
+      const agent = new PlaySceneRendererAgent({ ...ctx, projectRoot: root });
+      const chat = vi.spyOn(agent as unknown as { chat: PlaySceneRendererAgent["chat"] }, "chat").mockResolvedValue({
+        content: JSON.stringify({
+          sceneText: "她把那枚旧钥匙放回掌心。",
+          suggestedActions: [],
+        }),
+      } as never);
+
+      await agent.render({
+        input: "我看那把旧钥匙",
+        action: { actionKind: "look", intent: "看旧钥匙" },
+        mutationSummary: "旧钥匙仍在掌心。",
+        stateBrief: "物件：旧钥匙。",
+      });
+
+      const messages = chat.mock.calls[0]?.[0] as ReadonlyArray<{ readonly role: string; readonly content: string }>;
+      const system = messages.find((message) => message.role === "system")?.content ?? "";
+      expect(system).toContain("Prompt Pack Guidance");
+      expect(system).toContain("PROJECT RENDERER OVERRIDE");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 
   it("renderer fails open: non-JSON output becomes the scene instead of throwing", async () => {

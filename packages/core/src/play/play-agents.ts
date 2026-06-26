@@ -8,6 +8,7 @@ import {
   type PlayMutation,
   type PlayMutationInput,
 } from "../models/play.js";
+import { appendPromptPackGuidance } from "../skills/prompt-pack.js";
 
 export interface PlayActionInterpreterInput {
   readonly input: string;
@@ -126,8 +127,12 @@ export class PlayWorldMutatorAgent extends BaseAgent {
     // mutation degrades to a blocked, no-op turn (with a reason), not a crash.
     let raw: unknown = {};
     try {
+      const systemPrompt = await appendPromptPackGuidance(
+        buildWorldMutatorSystemPrompt(input.language ?? "zh"),
+        { promptId: "play.mutator", projectRoot: this.ctx.projectRoot },
+      );
       const response = await chatWithRetry(() => this.chat([
-        { role: "system", content: buildWorldMutatorSystemPrompt(input.language ?? "zh") },
+        { role: "system", content: systemPrompt },
         { role: "user", content: buildWorldMutatorUserPrompt(input, input.language ?? "zh") },
       ], { temperature: 0.25, maxTokens: 4096 }));
       raw = parseJson(response.content);
@@ -185,8 +190,12 @@ export class PlaySceneRendererAgent extends BaseAgent {
 
   async render(input: PlaySceneRenderInput & { readonly mode?: "open" | "guided" }): Promise<PlaySceneRender> {
     const language = input.language ?? "zh";
+    const systemPrompt = await appendPromptPackGuidance(
+      buildSceneRendererSystemPrompt(input.mode ?? "open", language),
+      { promptId: "play.renderer", projectRoot: this.ctx.projectRoot },
+    );
     const messages: { role: "system" | "user" | "assistant"; content: string }[] = [
-      { role: "system", content: buildSceneRendererSystemPrompt(input.mode ?? "open", language) },
+      { role: "system", content: systemPrompt },
       { role: "user", content: buildSceneRendererUserPrompt(input, language) },
     ];
     // The renderer must NEVER throw — a hiccup here used to break the turn AND leave

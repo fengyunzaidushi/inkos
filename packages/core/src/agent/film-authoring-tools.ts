@@ -18,6 +18,7 @@ import { writeCharacterFacts } from "../interactive-film/memory-link.js";
 import { MemoryDB } from "../state/memory-db.js";
 import { join } from "node:path";
 import { generateNodeImage, defaultNodeImageDeps, type NodeImageDeps } from "../interactive-film/node-image.js";
+import { appendPromptPackGuidance } from "../skills/prompt-pack.js";
 
 // ---------------------------------------------------------------------------
 // Local helper — textResult is not exported from agent-tools.ts
@@ -185,6 +186,17 @@ const FillNodeParams = Type.Object({
 });
 
 const NODE_SYSTEM = `你是互动影游编剧。根据当前图上下文和指令，为指定节点生成 JSON（单个 StoryNode：type/title/sceneDesc/dialogue[]/choices[]），只输出 JSON。choices[].targetNodeId 必须指向已存在的节点 id。`;
+const INTERACTIVE_FILM_AUTHORING_SKILL = "interactive-film-authoring";
+
+function graphUpdatedDetails(rev: number, promptId: string, extra: Record<string, unknown> = {}) {
+  return {
+    kind: "graph_updated" as const,
+    rev,
+    usedSkills: [INTERACTIVE_FILM_AUTHORING_SKILL],
+    promptPacks: [promptId],
+    ...extra,
+  };
+}
 
 export function createFillNodeTool(
   projectRoot: string,
@@ -199,9 +211,13 @@ export function createFillNodeTool(
     async execute(_id, params: Static<typeof FillNodeParams>) {
       const graph = await loadStoryGraph(projectRoot, projectId);
       const context = graph ? buildFilmAuthoringContext(graph) : "(empty graph)";
-      const text = await deps.chat(NODE_SYSTEM, `${context}\n\n要填的节点 id：${params.nodeId}\n指令：${params.instruction}`);
+      const systemPrompt = await appendPromptPackGuidance(NODE_SYSTEM, {
+        promptId: "interactive-film.script",
+        projectRoot,
+      });
+      const text = await deps.chat(systemPrompt, `${context}\n\n要填的节点 id：${params.nodeId}\n指令：${params.instruction}`);
       const { rev } = await applyGraphDelta({ projectRoot, projectId, delta: buildFillNodeDeltaFromLLMText(text, params.nodeId), phase: "workshop" });
-      return textResult(`Node ${params.nodeId} filled (rev ${rev}).`, { kind: "graph_updated", rev });
+      return textResult(`Node ${params.nodeId} filled (rev ${rev}).`, graphUpdatedDetails(rev, "interactive-film.script"));
     },
   };
 }
@@ -220,9 +236,13 @@ export function createReviseNodeTool(
       const graph = await loadStoryGraph(projectRoot, projectId);
       const context = graph ? buildFilmAuthoringContext(graph) : "(empty graph)";
       const current = graph?.nodes.find((n) => n.id === params.nodeId);
-      const text = await deps.chat(NODE_SYSTEM, `${context}\n\n要修改的节点 id：${params.nodeId}\n现有内容：${JSON.stringify(current ?? {})}\n修改指令：${params.instruction}`);
+      const systemPrompt = await appendPromptPackGuidance(NODE_SYSTEM, {
+        promptId: "interactive-film.script",
+        projectRoot,
+      });
+      const text = await deps.chat(systemPrompt, `${context}\n\n要修改的节点 id：${params.nodeId}\n现有内容：${JSON.stringify(current ?? {})}\n修改指令：${params.instruction}`);
       const { rev } = await applyGraphDelta({ projectRoot, projectId, delta: buildFillNodeDeltaFromLLMText(text, params.nodeId), phase: "workshop" });
-      return textResult(`Node ${params.nodeId} revised (rev ${rev}).`, { kind: "graph_updated", rev });
+      return textResult(`Node ${params.nodeId} revised (rev ${rev}).`, graphUpdatedDetails(rev, "interactive-film.script"));
     },
   };
 }
@@ -254,9 +274,13 @@ export function createDraftStructureTool(
     async execute(_id, params: Static<typeof DraftStructureParams>) {
       const graph = await loadStoryGraph(projectRoot, projectId);
       const context = graph ? buildFilmAuthoringContext(graph) : "(empty graph)";
-      const text = await deps.chat(STRUCT_SYSTEM, `${context}\n\n骨架指令：${params.instruction}`);
+      const systemPrompt = await appendPromptPackGuidance(STRUCT_SYSTEM, {
+        promptId: "interactive-film.story-graph",
+        projectRoot,
+      });
+      const text = await deps.chat(systemPrompt, `${context}\n\n骨架指令：${params.instruction}`);
       const { graph: next, rev } = await applyGraphDelta({ projectRoot, projectId, delta: buildStructureDeltaFromLLMText(text), phase: "structure" });
-      return textResult(`Structure drafted: ${next.nodes.length} nodes (rev ${rev}).`, { kind: "graph_updated", rev });
+      return textResult(`Structure drafted: ${next.nodes.length} nodes (rev ${rev}).`, graphUpdatedDetails(rev, "interactive-film.story-graph"));
     },
   };
 }

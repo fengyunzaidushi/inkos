@@ -76,6 +76,21 @@ export async function loadPromptPackPrompt(input: LoadPromptPackPromptInput): Pr
   throw new PromptPackPromptNotFoundError(promptId);
 }
 
+export async function appendPromptPackGuidance(
+  basePrompt: string,
+  input: LoadPromptPackPromptInput,
+): Promise<string> {
+  const prompt = await loadPromptPackPrompt(input);
+  const content = prompt.content.trim();
+  if (!content) return basePrompt;
+  return [
+    basePrompt,
+    "",
+    `## Prompt Pack Guidance (${prompt.promptId}, source: ${prompt.source})`,
+    content,
+  ].join("\n");
+}
+
 export function promptOverridePath(root: string, promptId: string): string {
   const normalized = normalizePromptId(promptId);
   const parts = normalized.split(".");
