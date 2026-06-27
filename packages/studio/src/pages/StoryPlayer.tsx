@@ -132,7 +132,7 @@ export function StoryPlayer({
       )}
 
       {graph.variables.length > 0 && (
-        <div className="fixed bottom-6 right-6 border rounded-lg px-4 py-3 bg-white/90 space-y-1" data-testid="player-hud">
+        <div className="fixed bottom-6 right-6 border border-border rounded-lg px-4 py-3 bg-card/95 backdrop-blur-sm shadow-lg space-y-1" data-testid="player-hud">
           {graph.variables.map((v) => (
             <div key={v.name} className="flex justify-between gap-4 text-xs">
               <span className={c.muted}>{v.name}</span>

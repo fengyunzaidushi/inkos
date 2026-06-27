@@ -354,8 +354,17 @@ function MainArea({
   graph,
   c,
 }: MainAreaProps) {
+  // Content-type views need the same comfortable padding the standalone routes
+  // get from App's page wrapper; the wizard's main area is full-bleed, so embed
+  // them in a centered, padded column. Canvas (flow) and full-bleed (chat) opt out.
+  const contentWrap = "mx-auto w-full max-w-4xl px-6 py-6";
+
   if (showPreview) {
-    return <StoryPlayer projectId={projectId} nav={nav} theme={theme} t={t} />;
+    return (
+      <div className={contentWrap}>
+        <StoryPlayer projectId={projectId} nav={nav} theme={theme} t={t} />
+      </div>
+    );
   }
 
   if (phase === "world" && subView === "chat") {
@@ -389,7 +398,11 @@ function MainArea({
     (phase === "structure" && subView === "tree") ||
     (phase === "workshop" && subView === "tree")
   ) {
-    return <StoryGraphTree projectId={projectId} nav={nav} theme={theme} t={t} />;
+    return (
+      <div className={contentWrap}>
+        <StoryGraphTree projectId={projectId} nav={nav} theme={theme} t={t} />
+      </div>
+    );
   }
 
   if (phase === "workshop" && subView === "chat") {
@@ -409,11 +422,9 @@ function MainArea({
 
   if (phase === "validate") {
     return (
-      <div>
+      <div className={`${contentWrap} space-y-4`}>
         <AnalysisPanel projectId={projectId} theme={theme} />
-        <div className="px-4 pb-4 max-w-2xl">
-          <ExportBar projectId={projectId} theme={theme} />
-        </div>
+        <ExportBar projectId={projectId} theme={theme} />
       </div>
     );
   }
