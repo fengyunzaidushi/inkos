@@ -52,7 +52,7 @@ jobs:
       - name: Verify no workspace:* in tarballs
         run: |
           set -euo pipefail
-          for pkg in packages/core packages/cli; do
+          for pkg in packages/core packages/cli packages/studio; do
             echo "--- Checking $pkg ---"
             cd "$pkg"
             PACKDIR=$(mktemp -d)

@@ -3,7 +3,7 @@
   <img src="assets/inkos-text.svg" width="240" height="65" alt="InkOS">
 </p>
 
-<h1 align="center">Story Creation AI Agent<br><sub>Creation system for long-form and short fiction, scripts, interactive games, and IP content</sub></h1>
+<h1 align="center">Story Creation AI Agent<br><sub>Creation system for long-form and short fiction, scripts, interactive film/games, and IP content</sub></h1>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@actalk/inkos"><img src="https://img.shields.io/npm/v/@actalk/inkos.svg?color=cb3837&logo=npm" alt="npm version"></a>
@@ -26,21 +26,25 @@
 
 ---
 
-InkOS is a local AI creation system for long-form novels, standalone short fiction, fan fiction, spinoffs, style imitation, continuation, and interactive worlds. Studio Chat, CLI, and TUI share the same action surface, so you can discuss ideas, confirm heavy actions, generate work, preview artifacts, and edit persistent project files from one place.
+InkOS is a local AI creation system for long-form novels, standalone short fiction, scripts, storyboards, fan fiction, spinoffs, style imitation, continuation, interactive film projects, and interactive worlds. Studio Chat, CLI, and TUI share the same action surface, so you can discuss ideas, confirm heavy actions, generate work, preview artifacts, research external facts, and edit persistent project files from one place.
 
 > 💡 **Give your writing agent a professional data layer first** — writing fiction isn't just about the model; what's usually missing is the source material. Pair InkOS with [**火花数据API (huohuaapi)**](https://huohuaapi.com/): a pay-per-call novel / web-fiction creation data API. Before the agent writes, it can pull sourced material — novel text, chapter structure, character profiles, writing style, and craft methods — instead of relying on prompts alone to fake a "plot outline".
 
-## v1.5.0 Major Update
+## v1.6.0 Major Update
 
-v1.5.0 is less about one isolated feature and more about moving InkOS from a chapter pipeline into a conversational, confirmable, context-aware creation system:
+v1.6.0 expands InkOS from open-world play into interactive-film authoring, scripts, storyboards, runtime skills, and traceable research:
 
-- **Instruction following**: Studio Chat, TUI, and CLI natural-language entry points now route through a unified action surface. Plain discussion, book creation, Short, cover generation, Play, and long-form writing are no longer driven by scattered keyword shortcuts. Heavy actions require confirmation, and completion is based on real tool results.
-- **Context management**: Long-form context is split into protected / compressible layers. Semantic compression is used only when the context budget is tight; session history is restored through summaries to reduce old-history drift.
-- **Open world / branching interaction**: InkOS Play adds free actions, clickable choices, world contracts, time flow, character / item / evidence / relationship state, HUD, and optional image generation.
-- **Creation entry points**: Long-form novels, Short, fanfic, spinoffs, style imitation, continuation, and cover generation now have first-class Studio entries instead of being hidden behind CLI-only workflows.
-- **Model and format resilience**: Weak-model formatting failures are less likely to crash a run outright. Provider errors, InkOS execution errors, and image generation failures are surfaced more separately, so debugging is clearer.
+- **Interactive film/games**: create branching story graphs, choices, variables/flags, relationship state, endings, node images, and exportable interactive project packages.
+- **Runtime skills**: built-in and project-local skills can inject professional rules, prompt packs, and context needs. Chat can auto-select skills, or the user can force one with `@skill-id`.
+- **Traceable web research**: `research_web` creates sourced Markdown reports for worldbuilding, era/profession details, markets, and fact checks. Reports are references only and do not mutate canon or prose by themselves.
+- **Script and storyboard authoring**: Studio Chat can propose script, storyboard, and interactive-film creation actions, confirm them, then save artifacts that can be inspected in Studio.
+- **Reliability fixes**: targeted chapter edits can survive minor model paraphrases; failed multi-chapter audits no longer erase existing chapter indexes; model/provider switching keeps the active book binding.
 
-This release broadly improves older pain points: accidental natural-language triggers, "I said one thing, the system did another", long histories overwhelming the current instruction, context-window failures, invisible interactive-world state, and mixed text/image provider errors.
+This release continues the v1.5 direction: heavy actions are confirmable, completion is derived from tool results and files, and story context is governed instead of blindly stuffing every file into the model.
+
+<p align="center">
+  <img src="assets/interactive-film-e2e.png" width="900" alt="InkOS interactive-film story graph E2E screenshot">
+</p>
 
 <p align="center">
   <img src="assets/inkos-short-demo-cover.png" width="210" alt="InkOS Short cover example">
@@ -55,7 +59,11 @@ This release broadly improves older pain points: accidental natural-language tri
 
 **InkOS Play** — build open worlds or branching interactive fiction from natural-language world contracts: time flow, character agents, inventory, evidence, relationships, scene state, visual rules, guided choices, free actions, and optional image generation.
 
+**Interactive film/games** — turn an idea, script, or prose reference into branching scenes, variables, endings, image prompts, node images, and an exportable project package.
+
 **Studio Chat** — a persistent chat surface for answering questions, proposing actions, creating books, launching Short / Play, generating covers, and editing text artifacts without pretending an action succeeded before the tool result exists.
+
+**Runtime skills and research** — add reusable professional skills under `.inkos/skills/`, force them with `@skill-id`, or ask for web research to generate a sourced Markdown report.
 
 **Model setup** — Studio includes provider settings, model routing, cover-service settings, [kkaiapi](https://en.kkaiapi.com/) / OpenRouter aggregator entries, and custom OpenAI-compatible endpoints.
 
