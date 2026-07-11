@@ -1,13 +1,13 @@
 ---
 name: inkos
-description: Story Creation AI Agent with Studio Chat, CLI, and TUI - use for long-form novels, standalone short fiction, scripts, storyboards, interactive-film projects, open-world / branching play, fan fiction, spinoffs, style imitation, continuations, covers, EPUB export, AIGC detection, and project analytics. Includes runtime skills, traceable web research, governed context assembly, protected/compressible context budgeting, persistent story state, multi-model routing, cover/image services, custom OpenAI-compatible providers, and InkOS Studio web UI.
-version: 2.5.2
+description: Story Creation and Translation AI Agent with Studio Chat, CLI, and TUI - use for long-form novels, short fiction, scripts, storyboards, interactive-film projects, open-world / branching play, fan fiction, spinoffs, style imitation, continuations, covers, and multilingual EPUB/PDF/TXT/Markdown translation. Includes runtime skills, traceable research, governed context, persistent story state, multi-model routing, image services, and InkOS Studio.
+version: 2.6.0
 metadata: { "openclaw": { "emoji": "📖", "requires": { "bins": ["inkos", "node"], "env": ["OPENAI_API_KEY"] }, "primaryEnv": "OPENAI_API_KEY", "homepage": "https://github.com/Narcooo/inkos", "install": [{ "id": "npm", "kind": "node", "package": "@actalk/inkos", "label": "Install InkOS (npm)" }] } }
 ---
 
-# InkOS - Story Creation AI Agent
+# InkOS - Story Creation & Translation AI Agent
 
-InkOS is a story creation AI agent for long-form novels, short fiction, scripts, storyboards, interactive-film projects, fan works, continuations, covers, and open-world / branching interactive play. Prefer the Studio Chat / action-surface workflow for natural-language requests: the model proposes or invokes typed actions, InkOS executes them, and completion is derived from real tool results and files, not from prose claims.
+InkOS is a story creation and multilingual translation AI agent for long-form novels, short fiction, scripts, storyboards, interactive-film projects, fan works, continuations, covers, open-world / branching interactive play, and long-document localization. Prefer the Studio Chat / action-surface workflow for natural-language requests: the model proposes or invokes typed actions, InkOS executes them, and completion is derived from real tool results and files, not from prose claims.
 
 Long-form writing still uses the chapter pipeline internally:
 - **Input governance**: Architect / Planner / Composer preserve author intent, current focus, outline sections, and relevant truth files instead of injecting everything blindly.
@@ -16,7 +16,7 @@ Long-form writing still uses the chapter pipeline internally:
 
 Truth files are persisted as schema-validated JSON (`story/state/*.json`) with markdown projections for human readability. SQLite temporal memory database (`story/memory.db`) enables relevance-based retrieval on Node 22+.
 
-## v1.6.2 Mental Model
+## v1.7.0 Mental Model
 
 Treat InkOS as a confirmable action system, not a bag of prompt shortcuts.
 
@@ -26,6 +26,7 @@ Treat InkOS as a confirmable action system, not a bag of prompt shortcuts.
 - Use `generate_cover` only for cover generation/regeneration.
 - Use `play_start` / `play_step` for Open World or Branching Interactive sessions.
 - Use script / storyboard / interactive-film tools only for production artifacts that should be saved and exported, not for casual discussion.
+- Use the translation project workflow for EPUB, text-based PDF, TXT, or Markdown localization. Keep source and target languages, glossary, review report, and export format explicit; do not replace it with an ad hoc one-turn translation when the user wants a complete deliverable.
 - Use `research_web` only when the user explicitly asks for external facts, market references, era/profession details, or worldbuilding research. Research reports are reference material and do not automatically mutate canon or prose.
 - Use long-form chapter tools only for existing long-form books.
 - Runtime skills provide professional rules, prompt packs, and context requirements. They do not grant new file, network, image, or writing permissions by themselves.
@@ -35,7 +36,7 @@ Treat InkOS as a confirmable action system, not a bag of prompt shortcuts.
 - Prompt packs are user-tunable in Studio Project Settings. Project overrides are saved under `prompt/<pack>/<prompt>.md`; do not edit generated artifacts just to change system behavior.
 - Long-form chapter revision from Chat passes the current user instruction into the reviser as a one-off brief. If the revision is not applied, inspect the returned gate metrics and remaining audit issues before claiming it was fixed.
 
-v1.6.2 keeps the v1.6 interactive-film and runtime-skill model, and adds Chat attachments, material archive/retrieval, abortable agent turns, Studio-editable prompt packs, and clearer Chat-driven chapter revision diagnostics. Still surface unresolved audit issues plainly instead of claiming they were fixed.
+v1.7.0 keeps the v1.6 interactive-film and runtime-skill model, then adds complete multilingual translation/localization, English-native short/script/storyboard/interactive-film paths, existing-novel import from Chat, configurable review and revision gates, abortable long tasks, recoverable write locks, material archive/retrieval, and Studio-editable prompt packs. Still surface unresolved review or execution issues plainly instead of claiming they were fixed.
 
 ## When to Use InkOS
 
@@ -51,6 +52,7 @@ v1.6.2 keeps the v1.6 interactive-film and runtime-skill model, and adds Chat at
 - **Interactive worlds**: Start Open World or Branching Interactive sessions with world contracts, character agents, inventory/evidence/relationship state, guided choices, free actions, and optional image generation
 - **Interactive-film projects**: Create playable branch graphs, variables/flags, relationship state, endings, node images, and exportable interactive project packages
 - **Scripts and storyboards**: Convert ideas, outlines, or prose into script/storyboard deliverables while preserving user format choices
+- **Long-document translation**: Translate EPUB, text-based PDF, TXT, or Markdown by chapter and semantic segment, maintain terminology, review source and target side by side, and export TXT/Markdown/EPUB
 - **Runtime skills**: Load built-in or project-local skills, allow Chat to auto-select them, or force a skill with `@skill-id`
 - **Traceable web research**: Create sourced Markdown reports for facts, era/profession details, markets, and worldbuilding references
 - **Quality auditing**: Detect AI-generated content and perform 33-dimension quality checks
@@ -485,6 +487,21 @@ Use this when the user wants a production artifact rather than a casual answer:
 
 In Studio Chat, these actions should be proposed with a confirmation card first. After confirmation, InkOS writes the artifact and reports the saved files. Do not hand-write a fake "created" result in prose.
 
+### Workflow 21: Multilingual Translation / Localization
+
+Use a translation project when the user wants a complete, reviewable deliverable rather than a one-off translated paragraph. Inputs can be EPUB, text-based PDF, TXT, or Markdown; source and target languages can be written as normal language names in Studio.
+
+```bash
+inkos translate init --from ./source.epub --source Chinese --target English
+inkos translate run <project-id>
+inkos translate export <project-id> --format epub
+```
+
+- Preserve the project glossary and chapter boundaries across translation batches.
+- Review source and translation side by side; treat the generated review report as the quality record.
+- Export TXT, Markdown, or EPUB only after the requested segments are complete.
+- For scanned PDFs without a text layer, run OCR before importing; InkOS currently reads text-based PDFs.
+
 ## InkOS Studio (Web Workbench)
 
 `inkos studio` launches a local web UI (default port 4567) that provides a visual interface for all InkOS operations:
@@ -494,6 +511,7 @@ In Studio Chat, these actions should be proposed with a confirmation card first.
 - **Open World / Branching Interactive** — start and continue interactive worlds with world contracts, free actions, clickable choices, HUD state, and image generation
 - **Interactive-film workbench** — create and inspect branch nodes, variables/flags, endings, node images, and export packages
 - **Script / storyboard tools** — generate production-oriented script and storyboard files from ideas, prose, or reference notes
+- **Translation workbench** — import EPUB, text-based PDF, TXT, or Markdown; choose source and target languages; translate, compare, review, and export complete projects
 - **Runtime Skill management** — list built-in skills, add project-local skills, edit `.inkos/skills/<id>/SKILL.md`, and force skills from Chat
 - **Research search provider** — configure external web search API credentials for `research_web`
 - **Chapter review & editing** — approve/reject drafts, edit content inline, multi-mode revision (polish/spot-fix/rewrite/anti-detect)
@@ -512,7 +530,7 @@ inkos studio              # Start on default port 4567
 inkos studio -p 8080      # Start on custom port
 ```
 
-The **Studio Chat** surface shares the same action kernel as TUI and CLI. It can answer questions, propose/confirm creation actions, run Short, generate covers, start Play, edit persistent text artifacts, and invoke long-form writing operations.
+The **Studio Chat** surface shares the same action kernel as TUI and CLI. It can answer questions, propose/confirm creation and translation actions, run Short, generate covers, start Play, import existing novels, edit persistent text artifacts, and invoke long-form writing operations.
 
 ## Advanced: Natural Language Agent Mode
 

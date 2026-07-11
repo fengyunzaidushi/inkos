@@ -12,7 +12,7 @@ Major multilingual creation and long-task reliability release. InkOS gains a com
 
 - Added a translation and localization workflow for EPUB, text-based PDF, TXT, and Markdown sources, with chapter-aware semantic segmentation, glossary management, chapter review, and TXT / Markdown / EPUB export
 - Added the Studio Translation workbench for human-readable source and target languages, project creation, translation runs, side-by-side source and translated text review, review reports, and complete-file export
-- Added `inkos translate create / run / export` to the CLI. Studio Chat can also propose a confirmed translation action without requiring users to know language codes such as `zh` or `en`
+- Added `inkos translate init / run / export` to the CLI. Studio Chat can also propose a confirmed translation action without requiring users to know language codes such as `zh` or `en`
 - Added English prompt branches for short fiction, scripts, storyboards, and interactive film, plus bilingual dynamic Studio copy and corrected CLI environment-language fallback
 - Added the Chat `import_chapters` tool: existing novels from local files, directories, or chat attachments can become real book chapters, with settings reverse-engineered and chapter state replayed. This is distinct from `ingest_material`, which only stores reference material (#324)
 

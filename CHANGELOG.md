@@ -12,7 +12,7 @@
 
 - 新增翻译 / 本地化工作流：支持导入 EPUB、文本型 PDF、TXT 和 Markdown，按章节与语义段翻译，维护术语表并执行章节审校，可导出 TXT、Markdown 或 EPUB
 - Studio 新增翻译工作台：可使用自然语言填写任意源语言 / 目标语言，创建项目、运行翻译、在网页内对照查看原文与译文、阅读审校报告并导出完整文件
-- CLI 新增 `inkos translate create / run / export`；Studio Chat 也可通过确认动作创建翻译项目，不要求用户记忆 `zh`、`en` 等语言缩写
+- CLI 新增 `inkos translate init / run / export`；Studio Chat 也可通过确认动作创建翻译项目，不要求用户记忆 `zh`、`en` 等语言缩写
 - 短篇、剧本、分镜和互动影游管线新增英文提示词分支；Studio 动态界面与 CLI 环境语言回退同步补齐，英文不再只是外层 UI 翻译
 - Chat 新增 `import_chapters` 工具：可把本地文件 / 目录及对话附件中的已有小说导入为真实章节，自动逆向生成设定并重放章节状态；与只保存参考资料的 `ingest_material` 明确分工（#324）
 
